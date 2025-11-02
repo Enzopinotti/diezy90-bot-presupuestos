@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Presupuesto {{NUMBER}}</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #222; }
+    h1 { margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
+    tfoot td { border: 0; padding-top: 12px; font-weight: bold; }
+    small { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>Presupuesto {{NUMBER}}</h1>
+  <p>Fecha: {{DATE}}</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Cant.</th>
+        <th>Subtotal (lista)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!--ROWS-->
+    </tbody>
+  </table>
+
+  <p><small>{{FOOTER}}</small></p>
+</body>
+</html>
