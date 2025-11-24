@@ -1,12 +1,17 @@
-//src/config/logger.js
+// src/config/logger.js
 import pino from 'pino';
-import { env } from './env.js';
+const isDev = process.env.NODE_ENV !== 'production';
 
-export const logger = pino({
-  name: 'd90-bot',
-  level: env.node === 'production' ? 'info' : 'debug',
-  transport: env.node === 'production' ? undefined : {
-    target: 'pino-pretty',
-    options: { colorize: true, translateTime: 'SYS:standard' }
+let destination;
+if (isDev) {
+  try {
+    destination = pino.transport({ target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } });
+  } catch {
+    destination = undefined; // sigue plano
   }
-});
+}
+export const logger = pino({
+  level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+  base: null,
+  redact: ['env.wati.apiKey', 'headers.authorization', 'Authorization']
+}, destination);

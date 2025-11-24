@@ -4,25 +4,237 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Presupuesto {{NUMBER}}</title>
+
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #222; }
-    h1 { margin: 0 0 16px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
-    tfoot td { border: 0; padding-top: 12px; font-weight: bold; }
-    small { color: #666; }
+    * { box-sizing: border-box; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 16mm 14mm;
+      color: #222;
+      font-size: 12px;
+      position: relative;
+    }
+
+    /* ========= WATERMARK CENTRADA ========= */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.06;
+      width: 55%;
+      z-index: 0;
+    }
+
+    /* ========= CABECERA ========= */
+    .header {
+      display: grid;
+      grid-template-columns: 130px 1fr 150px;
+      gap: 10px;
+      align-items: center;
+      position: relative;
+      z-index: 5;
+    }
+
+    .logo {
+      height: 72px;
+      object-fit: contain;
+    }
+
+    .company h1 {
+      margin: 0 0 2px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .company small {
+      font-size: 9px;
+      color: #444;
+      line-height: 1.35;
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 11px;
+      color: #444;
+      line-height: 1.3;
+    }
+
+    .meta div b {
+      font-weight: 700;
+    }
+
+    /* ========= TÍTULO ========= */
+    .titlebar {
+      border-top: 2px solid #000;
+      margin-top: 12px;
+      padding-top: 8px;
+      position: relative;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .titlebar h2 {
+      margin: 0;
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      color: #E54425;
+    }
+
+    /* ========= CLIENTE ========= */
+    .client {
+      display: grid;
+      grid-template-columns: 34% 34% 32%;
+      gap: 10px;
+      margin-top: 10px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background: #fafafa;
+      font-size: 11px;
+      z-index: 5;
+      position: relative;
+    }
+
+    .client div b {
+      min-width: 70px;
+      display: inline-block;
+      color: #333;
+    }
+
+    /* ========= TABLA ========= */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      z-index: 5;
+      position: relative;
+    }
+
+    thead th {
+      background: #EFEFEF;
+      padding: 8px 6px;
+      border-bottom: 2px solid #000;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    tbody td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #ddd;
+      vertical-align: top;
+    }
+
+    .col-desc { width: 58%; }
+    .col-qty  { width: 10%; text-align: center; }
+    .col-price, .col-amount {
+      width: 16%;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* ========= TOTALES ========= */
+    .totals {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 14px;
+      z-index: 5;
+      position: relative;
+    }
+
+    .obs {
+      font-size: 11px;
+      color: #333;
+      line-height: 1.45;
+    }
+
+    .obs h3 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: #E54425;
+      font-weight: 700;
+    }
+
+    .grand {
+      border: 2px solid #000;
+      padding: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .breakdown {
+      border: 1px dashed #888;
+      margin-top: 6px;
+      padding: 8px;
+      background: #FCFCFC;
+      font-size: 12px;
+    }
+
+    .breakdown b {
+      color: #000;
+    }
+
+    /* ========= FOOTER ========= */
+    .footer {
+      margin-top: 12px;
+      font-size: 11px;
+      color: #555;
+      position: relative;
+      z-index: 5;
+    }
   </style>
 </head>
-<body>
-  <h1>Presupuesto {{NUMBER}}</h1>
-  <p>Fecha: {{DATE}}</p>
 
+<body>
+
+  <!-- Marca de agua -->
+  <img src="{{ASSET_WATERMARK}}" class="watermark"/>
+
+  <!-- HEADER -->
+  <div class="header">
+    <img src="{{ASSET_LOGO}}" class="logo"/>
+
+    <div class="company">
+      <small>
+        {{COMPANY_ADDRESS}} · Tel.: {{COMPANY_PHONE}} · Whatsapp: {{COMPANY_WHATSAPP}}<br>
+        CUIT/I.I.B.B.: {{COMPANY_CUIT}}
+      </small>
+    </div>
+
+    <div class="meta">
+      <div>N°: <b>{{NUMBER}}</b></div>
+      <div>Fecha: <b>{{DATE}}</b></div>
+      <div>Condiciones: <b>{{CONDITIONS}}</b></div>
+    </div>
+  </div>
+
+  <!-- TÍTULO -->
+  <div class="titlebar">
+    <h2>Presupuesto</h2>
+  </div>
+
+  <!-- DATOS CLIENTE -->
+  <div class="client">
+    <div><b>Cliente:</b> {{CLIENT_NAME}}</div>
+    <div><b>Domicilio:</b> {{CLIENT_ADDRESS}}</div>
+    <div><b>Teléfono:</b> {{CLIENT_PHONE}}</div>
+  </div>
+
+  <!-- TABLA -->
   <table>
     <thead>
       <tr>
-        <th>Producto</th>
-        <th>Cant.</th>
-        <th>Subtotal (lista)</th>
+        <th class="col-desc">DESCRIPCIÓN</th>
+        <th class="col-qty">CANT.</th>
+        <th class="col-price">PRECIO U.</th>
+        <th class="col-amount">IMPORTE</th>
       </tr>
     </thead>
     <tbody>
@@ -30,6 +242,32 @@
     </tbody>
   </table>
 
-  <p><small>{{FOOTER}}</small></p>
+  <!-- TOTALES -->
+  <div class="totals">
+    <div class="obs">
+      <h3>Observaciones</h3>
+      <ul>
+        <li>Los precios de materiales ACOPIADOS se mantienen por 1 año.</li>
+        <li>Entrega a culata; el cliente debe contar con personal de descarga.</li>
+        <li>Material a granel / palletizado se descarga en la puerta de obra.</li>
+        <li>El cliente debe verificar el material al recibirlo.</li>
+        <li>El costo de entrega varía según la distancia.</li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="grand">SUBTOTAL SIN DESCUENTO: {{SUBTOTAL_LISTA}}</div>
+
+      <div class="breakdown">
+        Total en efectivo (−{{PCT_CASH}}):  
+        <b>{{TOTAL_EFECTIVO}}</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    {{FOOTER}}
+  </div>
+
 </body>
 </html>

@@ -1,4 +1,4 @@
-//src/config/env.js
+// src/config/env.js
 import 'dotenv/config';
 
 export const env = {
@@ -13,7 +13,8 @@ export const env = {
   wati: {
     baseUrl: process.env.WATI_BASE_URL || 'https://live.wati.io/api/v1',
     apiKey: process.env.WATI_API_KEY || '',
-    webhookSecret: process.env.WATI_WEBHOOK_SECRET || ''
+    webhookSecret: process.env.WATI_WEBHOOK_SECRET || '',
+    catalogId: process.env.WATI_CATALOG_ID
   },
 
   // Shopify
@@ -37,5 +38,10 @@ export const env = {
   business: {
     budgetValidityDays: Number(process.env.BUDGET_VALIDITY_DAYS || 1),
     pdfFooterText: process.env.PDF_FOOTER_TEXT || 'Validez: 1 día.'
+  },
+
+  // Session (control de duración de presupuestos, login, etc.)
+  session: {
+    ttlHours: Number(process.env.SESSION_TTL_HOURS || 24)
   }
 };
