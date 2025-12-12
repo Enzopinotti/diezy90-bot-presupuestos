@@ -1,140 +1,749 @@
 [
-  { "keyword": "arena bolsita > 3 baldes", "aliases": ["arena bolsita 3 baldes", "arena bolsita >3 baldes"], "defaultQty": 1 },
-  { "keyword": "arena bolson x 1m3", "aliases": ["arena bolson 1m3", "arena bolsón 1m3", "bolson arena 1m3"], "defaultQty": 1 },
-  { "keyword": "arena bolson x 1/2m3", "aliases": ["arena bolson 1/2m3", "arena bolsón medio m3", "arena bolson 0.5m3"], "defaultQty": 1 },
-  { "keyword": "arena a granel x 6 m3", "aliases": ["arena 6m3", "arena camion 6m3"], "defaultQty": 1 },
-
-  { "keyword": "escombro triturado x 6 m3", "aliases": ["escombro 6m3", "escombro camion 6m3"], "defaultQty": 1 },
-  { "keyword": "escombro triturado en bolson x 1 m3", "aliases": ["escombro bolson 1m3", "escombro bolsón 1m3"], "defaultQty": 1 },
-  { "keyword": "escombro triturado en bolson x 1/2 m3", "aliases": ["escombro bolson 1/2m3", "escombro bolsón medio m3", "escombro 0.5m3"], "defaultQty": 1 },
-  { "keyword": "escombro bolsita > 3 baldes", "aliases": ["escombro bolsita 3 baldes"], "defaultQty": 1 },
-
-  { "keyword": "piedra 6/20 granitica bolsita x 3 baldes", "aliases": ["piedra 6/20 bolsita 3 baldes"], "defaultQty": 1 },
-  { "keyword": "piedra blanca 10/30 bolson x 1m3", "aliases": ["piedra blanca bolson 1m3", "piedra blanca 1m3"], "defaultQty": 1 },
-  { "keyword": "piedra 6/20 granitica bolson x 1 m3", "aliases": ["piedra 6/20 bolson 1m3"], "defaultQty": 1 },
-  { "keyword": "piedra 6/20 granitica bolson x 1/2 m3", "aliases": ["piedra 6/20 bolson medio m3", "piedra 6/20 0.5m3"], "defaultQty": 1 },
-  { "keyword": "piedra blanca 10/30 bolson x 1/2m3", "aliases": ["piedra blanca bolson 1/2m3", "piedra blanca 0.5m3"], "defaultQty": 1 },
-  { "keyword": "piedra 6/20 granitica x 6 m3", "aliases": ["piedra 6/20 6m3", "piedra granitica 6m3"], "defaultQty": 1 },
-  { "keyword": "piedra blanca 10/30 x 6 m3", "aliases": ["piedra blanca 6m3", "piedra 10/30 6m3"], "defaultQty": 1 },
-  { "keyword": "piedra blanca 10/30 bolsita x 3 baldes", "aliases": ["piedra blanca bolsita 3 baldes"], "defaultQty": 1 },
-
-  { "keyword": "tosca a granel x 6 m3", "aliases": ["tosca 6m3", "tosca camion 6m3"], "defaultQty": 1 },
-
-  { "keyword": "hidrofugo ceresita x 1 kg", "aliases": ["ceresita 1kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo ceresita x 10 kg", "aliases": ["ceresita 10kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo ceresita x 20 kg", "aliases": ["ceresita 20kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo ceresita x 200 kg", "aliases": ["ceresita 200kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo ceresita x 4 kg", "aliases": ["ceresita 4kg"], "defaultQty": 1 },
-
-  { "keyword": "hidrofugo sinteplast x 20 kg", "aliases": ["sinteplast 20kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo sinteplast x 1 kg", "aliases": ["sinteplast 1kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo sinteplast x 10 kg", "aliases": ["sinteplast 10kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo sinteplast x 200 kg", "aliases": ["sinteplast 200kg"], "defaultQty": 1 },
-  { "keyword": "hidrofugo sinteplast x 5 kg", "aliases": ["sinteplast 5kg"], "defaultQty": 1 },
-
-  { "keyword": "tapa goteras x 1 lt", "aliases": ["tapa goteras 1lt"], "defaultQty": 1 },
-
-  { "keyword": "cemento", "aliases": ["cemento bolsa 25kg", "cemento portland", "cemento cpc40"], "defaultQty": 1 },
-
-  { "keyword": "cal", "aliases": ["cal hidratada", "bolsa cal"], "defaultQty": 1 },
-
-  { "keyword": "plasticor", "aliases": ["plasticor bolsa"], "defaultQty": 1 },
-
-  { "keyword": "hierro de 04,2", "aliases": ["hierro 4.2mm", "fi 4.2"], "defaultQty": 1 },
-  { "keyword": "hierro de 06", "aliases": ["hierro 6mm", "fi6"], "defaultQty": 1 },
-  { "keyword": "hierro de 08", "aliases": ["hierro 8mm", "fi8"], "defaultQty": 1 },
-  { "keyword": "hierro de 10", "aliases": ["hierro 10mm", "fi10"], "defaultQty": 1 },
-  { "keyword": "hierro de 12", "aliases": ["hierro 12mm", "fi12"], "defaultQty": 1 },
-
-  { "keyword": "pallet ladrillo hueco 08 x 18 x 33", "aliases": ["pallet ladrillo 08x18x33"], "defaultQty": 1 },
-  { "keyword": "ladrillo hueco 08 x 18 x 33 x unidad", "aliases": ["ladrillo 08x18x33 unidad"], "defaultQty": 1 },
-  { "keyword": "pallet ladrillo hueco 12 x 18 x 33 9t", "aliases": ["pallet ladrillo 12x18x33 9t"], "defaultQty": 1 },
-  { "keyword": "ladrillo hueco 12 x 18 x 33 9t x unidad", "aliases": ["ladrillo 12x18x33 9t unidad"], "defaultQty": 1 },
-  { "keyword": "pallet ladrillo hueco 18 x 18 x 33", "aliases": ["pallet ladrillo 18x18x33"], "defaultQty": 1 },
-  { "keyword": "ladrillo hueco 18 x 18 x 33 x unidad", "aliases": ["ladrillo 18x18x33 unidad"], "defaultQty": 1 },
-
-  { "keyword": "malla 15x15 de 4 mm 2x5 m", "aliases": ["malla 4mm 2x5"], "defaultQty": 1 },
-  { "keyword": "malla 15x15 de 5.5 mm 2x5 m", "aliases": ["malla 5.5mm 2x5"], "defaultQty": 1 },
-  { "keyword": "malla 15x15 de 6 mm 6x2,4 m", "aliases": ["malla 6mm 6x2.4"], "defaultQty": 1 },
-
-  { "keyword": "ceramico animana tiza mate 36x36 ( precio x 2.33 m2)", "aliases": ["animana tiza mate 36x36"], "defaultQty": 1 },
-  { "keyword": "ceramico cachi arena brillante 36x36 ( precio x 2.33 m2)", "aliases": ["cachi arena brillante 36x36"], "defaultQty": 1 },
-  { "keyword": "ceramico calacatta blanco brillante 36x36 ( precio x 2.33 m2)", "aliases": ["calacatta blanco 36x36"], "defaultQty": 1 },
-  { "keyword": "ceramico calacatta dorado brillante 43x43 ( precio x 2.25 m2)", "aliases": ["calacatta dorado 43x43"], "defaultQty": 1 },
-
-  { "keyword": "ceramico cañuelas bologna beige 50x50 ( precio x 2.33 m2)", "aliases": ["bologna beige 50x50"], "defaultQty": 1 },
-  { "keyword": "ceramico cañuelas bologna gris 50x50 ( precio x 2.33 m2)", "aliases": ["bologna gris 50x50"], "defaultQty": 1 },
-  { "keyword": "ceramico cañuelas calacatta 50x50 ( precio x 2.33 m2)", "aliases": ["calacatta 50x50"], "defaultQty": 1 },
-  { "keyword": "ceramico cañuelas napoles beige 50x50 ( precio x 2.33 m2)", "aliases": ["napoles beige 50x50"], "defaultQty": 1 },
-  { "keyword": "ceramico cañuelas potenza 50x50 ( precio x 2.33 m2)", "aliases": ["potenza 50x50"], "defaultQty": 1 },
-  { "keyword": "ceramico cebil 36x36 ( precio x 2.33 m2)", "aliases": ["cebil 36x36"], "defaultQty": 1 },
-
-  { "keyword": "ceramico cortines 30x45 brick blanco (caja 1,35m2)", "aliases": ["cortines brick blanco 30x45"], "defaultQty": 1 },
-  { "keyword": "ceramico cortines 45x45 cairo beige (caja 1.62 m2)", "aliases": ["cortines cairo beige 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico cortines 45x45 cairo gris (caja 1,62m2)", "aliases": ["cortines cairo gris 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico cortines 45x45 cordillera litio (caja 1.62m2)", "aliases": ["cordillera litio 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico cortines toledo gris 50x50 ( precio x 1.75 m2)", "aliases": ["toledo gris 50x50"], "defaultQty": 1 },
-
-  { "keyword": "ceramico cotto plus azul 35x35 ( precio x 2.20 m2)", "aliases": ["cotto plus azul 35x35"], "defaultQty": 1 },
-  { "keyword": "ceramico cotto plus blanco 35x35 ( precio x 2.20 m2)", "aliases": ["cotto plus blanco 35x35"], "defaultQty": 1 },
-  { "keyword": "ceramico cotto plus marfil 35x35 ( precio x 2.20 m2)", "aliases": ["cotto plus marfil 35x35"], "defaultQty": 1 },
-  { "keyword": "ceramico cotto plus terra 35x35 ( precio x 2.20 m2)", "aliases": ["cotto plus terra 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico glaciar blanco 2da 42,3x42,3 (caja por 2,2 m2)", "aliases": ["glaciar blanco 42x42"], "defaultQty": 1 },
-  { "keyword": "ceramico grafiato marron 35x35 ( precio x 2.20 m2)", "aliases": ["grafiato marron 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico madera entramada 35x35 ( precio x 2.20 m2)", "aliases": ["madera entramada 35x35"], "defaultQty": 1 },
-  { "keyword": "ceramico madera parquet 35x35 ( precio x 2.20 m2)", "aliases": ["madera parquet 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico nogal gris satinado 43x43 ( precio x 2.25 m2)", "aliases": ["nogal gris 43x43"], "defaultQty": 1 },
-  { "keyword": "ceramico nogal marron satinado 43x43 ( precio x 2.25 m2)", "aliases": ["nogal marron 43x43"], "defaultQty": 1 },
-  { "keyword": "ceramico nogal vintage satinado 43x43 ( precio x 2.25 m2)", "aliases": ["nogal vintage 43x43"], "defaultQty": 1 },
-
-  { "keyword": "ceramico porfido verde 35x35 ( precio x 2.20 m2)", "aliases": ["porfido verde 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico s.l card fit light 45,3x45,3 (caja 2.255m2)", "aliases": ["card fit light 45x45"], "defaultQty": 1 },
-
-  { "keyword": "ceramico san telmo gris 35x35 ( precio x 2.20 m2)", "aliases": ["san telmo gris 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico scop 45,3x45,3 nogal fit (caja 2.255 m2)", "aliases": ["scop nogal fit 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico scop 45,3x45,3 tivoli fit tiza (caja 2.255m2)", "aliases": ["scop tivoli tiza 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico scop caleb fit roble 45,3x45,3 (caja 2,255 m2)", "aliases": ["scop caleb roble 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico scop habitat fit blanco 45,3x45,3 (caja 2.255 m2)", "aliases": ["scop habitat blanco 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico scop lacre fit rojo 45,3x45,3 (caja 2.255 m2)", "aliases": ["scop lacre rojo 45x45"], "defaultQty": 1 },
-  { "keyword": "ceramico scop tivoli fit beige 45,3x45,3 (caja 2.255 m2)", "aliases": ["scop tivoli beige 45x45"], "defaultQty": 1 },
-
-  { "keyword": "ceramico tafi gris 35x35 ( precio x 2.20 m2)", "aliases": ["tafi gris 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico tipa natural mate 36x36 ( precio x 2.33 m2)", "aliases": ["tipa natural 36x36"], "defaultQty": 1 },
-
-  { "keyword": "ceramico travertino plus gris 35x35 ( precio x 2.20 m2)", "aliases": ["travertino plus gris 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico victoria beige 35x35 ( precio x 2.20 m2)", "aliases": ["victoria beige 35x35"], "defaultQty": 1 },
-
-  { "keyword": "ceramico zenta beige mate 36x36 ( precio x 2.33 m2)", "aliases": ["zenta beige mate 36x36"], "defaultQty": 1 },
-  { "keyword": "ceramico zenta beige satinado 43x43 ( precio x 2.25 m2)", "aliases": ["zenta beige satinado 43x43"], "defaultQty": 1 },
-  { "keyword": "ceramico zenta gris satinado 43x43 ( precio x 2.25 m2)", "aliases": ["zenta gris satinado 43x43"], "defaultQty": 1 },
-  { "keyword": "ceramico zenta marfil mate 36x36 ( precio x 2.33 m2)", "aliases": ["zenta marfil mate 36x36"], "defaultQty": 1 },
-
-  { "keyword": "cemento cpc40 x25", "aliases": ["cemento 25kg cpc40"], "defaultQty": 1 },
-  { "keyword": "hidrofugo sinteplast 20kg", "aliases": ["sinteplast hidrofugo 20kg"], "defaultQty": 1 },
-  { "keyword": "malla 15x15 4mm 2x5", "aliases": ["malla soldada 4mm 2x5"], "defaultQty": 1 },
-  { "keyword": "ladrillo comun seleccionado", "aliases": ["ladrillo comun sel"], "defaultQty": 1 },
-  { "keyword": "ladrillo hueco 12x18x33 9t", "aliases": ["ladrillo 12x18x33 9t"], "defaultQty": 1 },
-  { "keyword": "ladrillo telgopor 10cm", "aliases": ["eps 10cm"], "defaultQty": 1 },
-
-  { "keyword": "hierro 6", "aliases": ["fi6 barra"], "defaultQty": 1 },
-  { "keyword": "hierro 8", "aliases": ["fi8 barra"], "defaultQty": 1 },
-  { "keyword": "hierro 10", "aliases": ["fi10 barra"], "defaultQty": 1 },
-  { "keyword": "hierro 12", "aliases": ["fi12 barra"], "defaultQty": 1 },
-
-  { "keyword": "alambre n16", "aliases": ["alambre dulce 16"], "defaultQty": 1 },
-
-  { "keyword": "clavo 2", "aliases": ["clavo 2 pulgadas"], "defaultQty": 1 },
-
-  { "keyword": "tornillo autoperforante 2 con junta", "aliases": ["autoperforante 2 con junta"], "defaultQty": 100 },
-
-  { "keyword": "aislante 5mm aluminizado x20m", "aliases": ["aislante 5mm 20m"], "defaultQty": 1 },
-
-  { "keyword": "vigueta 2.0m", "aliases": ["vigueta 2m"], "defaultQty": 1 }
+  {
+    "keyword": "arena bolsita > 3 baldes",
+    "aliases": [
+      "arena bolsita 3 baldes",
+      "arena bolsita >3 baldes"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "arena bolson x 1m3",
+    "aliases": [
+      "arena bolson 1m3",
+      "arena bolsón 1m3",
+      "bolson arena 1m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "arena bolson x 1/2m3",
+    "aliases": [
+      "arena bolson 1/2m3",
+      "arena bolsón medio m3",
+      "arena bolson 0.5m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "arena a granel x 6 m3",
+    "aliases": [
+      "arena 6m3",
+      "arena camion 6m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "escombro triturado x 6 m3",
+    "aliases": [
+      "escombro 6m3",
+      "escombro camion 6m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "escombro triturado en bolson x 1 m3",
+    "aliases": [
+      "escombro bolson 1m3",
+      "escombro bolsón 1m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "escombro triturado en bolson x 1/2 m3",
+    "aliases": [
+      "escombro bolson 1/2m3",
+      "escombro bolsón medio m3",
+      "escombro 0.5m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "escombro bolsita > 3 baldes",
+    "aliases": [
+      "escombro bolsita 3 baldes"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra 6/20 granitica bolsita x 3 baldes",
+    "aliases": [
+      "piedra 6/20 bolsita 3 baldes"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra blanca 10/30 bolson x 1m3",
+    "aliases": [
+      "piedra blanca bolson 1m3",
+      "piedra blanca 1m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra 6/20 granitica bolson x 1 m3",
+    "aliases": [
+      "piedra 6/20 bolson 1m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra 6/20 granitica bolson x 1/2 m3",
+    "aliases": [
+      "piedra 6/20 bolson medio m3",
+      "piedra 6/20 0.5m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra blanca 10/30 bolson x 1/2m3",
+    "aliases": [
+      "piedra blanca bolson 1/2m3",
+      "piedra blanca 0.5m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra 6/20 granitica x 6 m3",
+    "aliases": [
+      "piedra 6/20 6m3",
+      "piedra granitica 6m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra blanca 10/30 x 6 m3",
+    "aliases": [
+      "piedra blanca 6m3",
+      "piedra 10/30 6m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "piedra blanca 10/30 bolsita x 3 baldes",
+    "aliases": [
+      "piedra blanca bolsita 3 baldes"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "tosca a granel x 6 m3",
+    "aliases": [
+      "tosca 6m3",
+      "tosca camion 6m3"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo ceresita x 1 kg",
+    "aliases": [
+      "ceresita 1kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo ceresita x 10 kg",
+    "aliases": [
+      "ceresita 10kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo ceresita x 20 kg",
+    "aliases": [
+      "ceresita 20kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo ceresita x 200 kg",
+    "aliases": [
+      "ceresita 200kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo ceresita x 4 kg",
+    "aliases": [
+      "ceresita 4kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo sinteplast x 20 kg",
+    "aliases": [
+      "sinteplast 20kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo sinteplast x 1 kg",
+    "aliases": [
+      "sinteplast 1kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo sinteplast x 10 kg",
+    "aliases": [
+      "sinteplast 10kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo sinteplast x 200 kg",
+    "aliases": [
+      "sinteplast 200kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo sinteplast x 5 kg",
+    "aliases": [
+      "sinteplast 5kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "tapa goteras x 1 lt",
+    "aliases": [
+      "tapa goteras 1lt"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "cemento",
+    "aliases": [
+      "cemento bolsa 25kg",
+      "cemento portland",
+      "cemento cpc40"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "cal",
+    "aliases": [
+      "cal hidratada",
+      "bolsa cal"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "plasticor",
+    "aliases": [
+      "plasticor bolsa",
+      "plasticon",
+      "plasticón"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro de 04,2",
+    "aliases": [
+      "hierro 4.2mm",
+      "fi 4.2"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro de 06",
+    "aliases": [
+      "hierro 6mm",
+      "fi6"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro de 08",
+    "aliases": [
+      "hierro 8mm",
+      "fi8"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro de 10",
+    "aliases": [
+      "hierro 10mm",
+      "fi10"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro de 12",
+    "aliases": [
+      "hierro 12mm",
+      "fi12"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "pallet ladrillo hueco 08 x 18 x 33",
+    "aliases": [
+      "pallet ladrillo 08x18x33"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ladrillo hueco 08 x 18 x 33 x unidad",
+    "aliases": [
+      "ladrillo 08x18x33 unidad"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "pallet ladrillo hueco 12 x 18 x 33 9t",
+    "aliases": [
+      "pallet ladrillo 12x18x33 9t"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ladrillo hueco 12 x 18 x 33 9t x unidad",
+    "aliases": [
+      "ladrillo 12x18x33 9t unidad"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "pallet ladrillo hueco 18 x 18 x 33",
+    "aliases": [
+      "pallet ladrillo 18x18x33"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ladrillo hueco 18 x 18 x 33 x unidad",
+    "aliases": [
+      "ladrillo 18x18x33 unidad"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "malla 15x15 de 4 mm 2x5 m",
+    "aliases": [
+      "malla 4mm 2x5"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "malla 15x15 de 5.5 mm 2x5 m",
+    "aliases": [
+      "malla 5.5mm 2x5"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "malla 15x15 de 6 mm 6x2,4 m",
+    "aliases": [
+      "malla 6mm 6x2.4"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico animana tiza mate 36x36 ( precio x 2.33 m2)",
+    "aliases": [
+      "animana tiza mate 36x36"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cachi arena brillante 36x36 ( precio x 2.33 m2)",
+    "aliases": [
+      "cachi arena brillante 36x36"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico calacatta blanco brillante 36x36 ( precio x 2.33 m2)",
+    "aliases": [
+      "calacatta blanco 36x36"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico calacatta dorado brillante 43x43 ( precio x 2.25 m2)",
+    "aliases": [
+      "calacatta dorado 43x43"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cañuelas bologna beige 50x50 ( precio x 2.33 m2)",
+    "aliases": [
+      "bologna beige 50x50"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cañuelas bologna gris 50x50 ( precio x 2.33 m2)",
+    "aliases": [
+      "bologna gris 50x50"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cañuelas calacatta 50x50 ( precio x 2.33 m2)",
+    "aliases": [
+      "calacatta 50x50"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cañuelas napoles beige 50x50 ( precio x 2.33 m2)",
+    "aliases": [
+      "napoles beige 50x50"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cañuelas potenza 50x50 ( precio x 2.33 m2)",
+    "aliases": [
+      "potenza 50x50"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cebil 36x36 ( precio x 2.33 m2)",
+    "aliases": [
+      "cebil 36x36"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cortines 30x45 brick blanco (caja 1,35m2)",
+    "aliases": [
+      "cortines brick blanco 30x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cortines 45x45 cairo beige (caja 1.62 m2)",
+    "aliases": [
+      "cortines cairo beige 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cortines 45x45 cairo gris (caja 1,62m2)",
+    "aliases": [
+      "cortines cairo gris 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cortines 45x45 cordillera litio (caja 1.62m2)",
+    "aliases": [
+      "cordillera litio 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cortines toledo gris 50x50 ( precio x 1.75 m2)",
+    "aliases": [
+      "toledo gris 50x50"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cotto plus azul 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "cotto plus azul 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cotto plus blanco 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "cotto plus blanco 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cotto plus marfil 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "cotto plus marfil 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico cotto plus terra 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "cotto plus terra 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico glaciar blanco 2da 42,3x42,3 (caja por 2,2 m2)",
+    "aliases": [
+      "glaciar blanco 42x42"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico grafiato marron 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "grafiato marron 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico madera entramada 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "madera entramada 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico madera parquet 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "madera parquet 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico nogal gris satinado 43x43 ( precio x 2.25 m2)",
+    "aliases": [
+      "nogal gris 43x43"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico nogal marron satinado 43x43 ( precio x 2.25 m2)",
+    "aliases": [
+      "nogal marron 43x43"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico nogal vintage satinado 43x43 ( precio x 2.25 m2)",
+    "aliases": [
+      "nogal vintage 43x43"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico porfido verde 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "porfido verde 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico s.l card fit light 45,3x45,3 (caja 2.255m2)",
+    "aliases": [
+      "card fit light 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico san telmo gris 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "san telmo gris 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico scop 45,3x45,3 nogal fit (caja 2.255 m2)",
+    "aliases": [
+      "scop nogal fit 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico scop 45,3x45,3 tivoli fit tiza (caja 2.255m2)",
+    "aliases": [
+      "scop tivoli tiza 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico scop caleb fit roble 45,3x45,3 (caja 2,255 m2)",
+    "aliases": [
+      "scop caleb roble 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico scop habitat fit blanco 45,3x45,3 (caja 2.255 m2)",
+    "aliases": [
+      "scop habitat blanco 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico scop lacre fit rojo 45,3x45,3 (caja 2.255 m2)",
+    "aliases": [
+      "scop lacre rojo 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico scop tivoli fit beige 45,3x45,3 (caja 2.255 m2)",
+    "aliases": [
+      "scop tivoli beige 45x45"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico tafi gris 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "tafi gris 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico tipa natural mate 36x36 ( precio x 2.33 m2)",
+    "aliases": [
+      "tipa natural 36x36"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico travertino plus gris 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "travertino plus gris 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico victoria beige 35x35 ( precio x 2.20 m2)",
+    "aliases": [
+      "victoria beige 35x35"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico zenta beige mate 36x36 ( precio x 2.33 m2)",
+    "aliases": [
+      "zenta beige mate 36x36"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico zenta beige satinado 43x43 ( precio x 2.25 m2)",
+    "aliases": [
+      "zenta beige satinado 43x43"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico zenta gris satinado 43x43 ( precio x 2.25 m2)",
+    "aliases": [
+      "zenta gris satinado 43x43"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ceramico zenta marfil mate 36x36 ( precio x 2.33 m2)",
+    "aliases": [
+      "zenta marfil mate 36x36"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "cemento cpc40 x25",
+    "aliases": [
+      "cemento 25kg cpc40"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hidrofugo sinteplast 20kg",
+    "aliases": [
+      "sinteplast hidrofugo 20kg"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "malla 15x15 4mm 2x5",
+    "aliases": [
+      "malla soldada 4mm 2x5"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ladrillo comun seleccionado",
+    "aliases": [
+      "ladrillo comun sel"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ladrillo hueco 12x18x33 9t",
+    "aliases": [
+      "ladrillo 12x18x33 9t"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "ladrillo telgopor 10cm",
+    "aliases": [
+      "eps 10cm"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro 6",
+    "aliases": [
+      "fi6 barra"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro 8",
+    "aliases": [
+      "fi8 barra"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro 10",
+    "aliases": [
+      "fi10 barra"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "hierro 12",
+    "aliases": [
+      "fi12 barra"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "alambre n16",
+    "aliases": [
+      "alambre dulce 16"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "clavo 2",
+    "aliases": [
+      "clavo 2 pulgadas"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "tornillo autoperforante 2 con junta",
+    "aliases": [
+      "autoperforante 2 con junta"
+    ],
+    "defaultQty": 100
+  },
+  {
+    "keyword": "aislante 5mm aluminizado x20m",
+    "aliases": [
+      "aislante 5mm 20m"
+    ],
+    "defaultQty": 1
+  },
+  {
+    "keyword": "vigueta 2.0m",
+    "aliases": [
+      "vigueta 2m"
+    ],
+    "defaultQty": 1
+  }
 ]

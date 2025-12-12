@@ -8,7 +8,7 @@ import { logger } from '../config/logger.js';
 const msisdn = (to) => String(to).replace(/[^\d]/g, '');
 
 const api = axios.create({
-  baseURL: env.wati.baseUrl, 
+  baseURL: env.wati.baseUrl,
   headers: { Authorization: `Bearer ${env.wati.apiKey}` },
   timeout: 15000
 });
@@ -117,5 +117,63 @@ export async function downloadMedia(url, destPath) {
   } catch (e) {
     logger.error({ url, error: e.message }, 'Error downloading media');
     return false;
+  }
+}
+
+/**
+ * Envía mensaje interactivo con botones (máx 3)
+ * @param {string} to - Número de teléfono
+ * @param {string} bodyText - Texto del mensaje
+ * @param {Array} buttons - Botones [{id: 'btn_1', title: 'Opción 1'}, ...]
+ */
+export async function sendInteractiveButtons(to, bodyText, buttons) {
+  const dest = msisdn(to);
+  try {
+    const payload = {
+      body: bodyText,
+      buttons: buttons.map(btn => ({ text: btn.title }))
+    };
+    const { status, data } = await api.post(
+      `/sendInteractiveButtonsMessage?whatsappNumber=${encodeURIComponent(dest)}`,
+      payload
+    );
+    logOk('sendInteractiveButtons', dest, { status, data });
+    return { ok: data?.result !== false, status, data };
+  } catch (e) {
+    logErr('sendInteractiveButtons', dest, e);
+    return { ok: false, error: e?.response?.data || e.message };
+  }
+}
+
+/**
+ * Envía mensaje interactivo con lista (máx 10 opciones)
+ * @param {string} to - Número de teléfono
+ * @param {string} bodyText - Texto del mensaje
+ * @param {string} buttonLabel - Texto del botón que abre la lista
+ * @param {Array} sections - Secciones [{title: 'Sección', rows: [{id: 'row_1', title: 'Item', description: '...'}]}]
+ */
+export async function sendInteractiveList(to, bodyText, buttonLabel, sections) {
+  const dest = msisdn(to);
+  try {
+    const payload = {
+      body: bodyText,
+      buttonText: buttonLabel,  
+      sections: sections
+    };
+    const { status, data } = await api.post(
+      `/sendInteractiveListMessage?whatsappNumber=${encodeURIComponent(dest)}`,
+      payload
+    );
+    logOk('sendInteractiveList', dest, { status, data });
+
+    // Si WATI devuelve ok:false, tratarlo como error
+    if (data?.ok === false) {
+      return { ok: false, error: data?.errors?.join(', ') || 'Unknown error', data };
+    }
+
+    return { ok: true, status, data };
+  } catch (e) {
+    logErr('sendInteractiveList', dest, e);
+    return { ok: false, error: e?.response?.data || e.message };
   }
 }

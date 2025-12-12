@@ -2,7 +2,7 @@
 // ----------------------------------------------------
 import { GREETINGS, ensureSession, renderSummary, helpBudgetShort } from './utils.js';
 import { getSession, bumpSession, getSnapshot } from '../../services/sessionService.js';
-import { sendText } from '../../services/watiService.js';
+import { sendText, sendInteractiveButtons } from '../../services/watiService.js';
 import { env } from '../../config/env.js';
 
 function fmtExpiryFromSnap(snap) {
@@ -28,32 +28,36 @@ export async function handleGreetingsOrCatalog({ phone, textNorm, name }) {
   const sess = ensureSession(await getSession(phone));
   const snap = await getSnapshot(phone);
 
-  // Si hay presupuesto activo, mostramos el estado
-  if (sess.mode === 'BUDGET') {
+  // Si hay presupuesto activo, mostramos el estado + botones
+  // PERO solo si tiene ITEMS VÁLIDOS. Si solo tiene pendientes (basura/no encontrados), mostramos menú principal.
+  const hasItems = sess.items?.length > 0;
+
+  if (sess.mode === 'BUDGET' && hasItems) {
     await bumpSession(phone);
-    const guide = !sess.items?.length ? '\n\n' + helpBudgetShort() : '';
+
     await sendText(
       phone,
       `${firstLine} Seguís con un *presupuesto abierto*. Te muestro el estado 👇\n\n` +
-      renderSummary(sess.items, sess.notFound) + guide
+      renderSummary(sess.items, sess.notFound)
     );
+
+    const buttons = [];
+    if (sess.items.length > 0) {
+      buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+    }
+    buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
     return true;
   }
 
-  // Si hay snapshot, ofrecemos continuar
-  if (snap) {
-    const when = fmtExpiryFromSnap(snap);
-    await sendText(
-      phone,
-      `${firstLine} Tengo tu último presupuesto *${snap.number}* guardado` +
-      (when ? ` (vigente hasta ${when})` : '') + `.\n` +
-      `¿Querés *CONTINUAR* ese presupuesto o empezar uno *NUEVO*?\n\n` +
-      'Tip: también podés mandar 📷 foto (planilla/lista) o 🎤 audio con tu pedido.'
-    );
-    return true;
-  }
-
-  // Si no hay sesión ni snapshot, NO respondemos al saludo simple
-  // Dejamos que WATI maneje el primer contacto con su mensaje automático
-  return false; // ← Esto hace que WATI responda
+  await sendInteractiveButtons(
+    phone,
+    '¿En qué puedo ayudarte?',
+    [
+      { id: 'presupuesto', title: '📋 Presupuesto' },
+      { id: 'catalogo', title: '📚 Catálogo' }
+    ]
+  );
+  return true;
 }

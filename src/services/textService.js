@@ -54,7 +54,12 @@ export const RESERVED_TOKENS = new Set([
  */
 export function sanitizeText(s = '') {
   const t = _normBase(s).toLowerCase();
+
+  // Palabras de relleno conversacional a eliminar
+  const FILLERS = /\b(quisiera|necesito|necesitaria|quiero|dame|mandame|traeme|hola|buenas|tardes|dias|noches|por|favor|gracias|muchas|mucha|mucho|muchisimas|me|das|tenes|hay|disponible|stock|precio|cuanto|sale|cuesta|valor|ordenar|pedir|enviar|mandar|solicitar|comprar|vendeme|pasame)\b/gi;
+
   return t
+    .replace(FILLERS, ' ')
     .replace(/[^\p{L}\p{N}\s/.,x-]/gu, ' ') // letras, números, espacio, / . , x -
     .replace(/\s+/g, ' ')
     .trim();
@@ -75,28 +80,36 @@ export function splitLinesSmart(text) {
     result.push(...subParts);
   }
 
-  // Si alguien pegó todo en una sola línea con comas, separamos cuando haya patrón "... xN," repetido
-  if (result.length === 1) {
-    const one = result[0];
+  // 2. Iterar sobre las líneas base y aplicar splitting inteligente si detectamos lista
+  const finalResult = [];
+
+  for (const line of result) {
+    const one = line;
 
     // Patrón 1: "x N" (ej: arena x 3, piedra x 4)
     const hasManyQty = (one.match(/\b(?:x|por|a)\s*\d+(?:[.,]\d+)?\b/gi) || []).length >= 2;
 
     // Patrón 2: "N de Producto" (ej: 3 de arena, dos de piedra)
-    // Detecta dígitos o palabras numéricas seguidas de "de"
     const dePattern = /\b(?:\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|quince|veinte|treinta|cuarenta|cincuenta)\s+de\s+\w+/gi;
     const hasManyDe = (one.match(dePattern) || []).length >= 2;
 
-    if (hasManyQty || hasManyDe) {
+    // Patrón 3: Palabras del dominio + comas/y (ej: "arena, cemento y piedra")
+    const domHits = DOMAIN_HINTS.reduce((acc, w) => acc + (one.toLowerCase().includes(w) ? 1 : 0), 0);
+    const hasSeparators = /[,\n]|\s+y\s+/i.test(one);
+
+    if (hasManyQty || hasManyDe || (domHits >= 2 && hasSeparators)) {
       // Separar por:
-      // 1. Comas no seguidas de dígito: /,(?!\d)/
-      // 2. " y " con espacios: /\s+y\s+/
-      // 3. Puntos seguidos de espacio (final de oración): /\.\s+/
-      return one.split(/,(?!\d)|\s+y\s+|\.\s+/).map(s => s.trim()).filter(Boolean);
+      // 1. Comas no seguidas de dígito
+      // 2. " y " / " e " con espacios
+      // 3. Puntos seguidos de espacio
+      const parts = one.split(/,(?!\d)|\s+[ye]\s+|\.\s+/i).map(s => s.trim()).filter(Boolean);
+      finalResult.push(...parts);
+    } else {
+      finalResult.push(one);
     }
   }
 
-  return result;
+  return finalResult;
 }
 
 /** Extrae una cantidad "global" del texto (para intents rápidos). Toma la última coincidencia. */

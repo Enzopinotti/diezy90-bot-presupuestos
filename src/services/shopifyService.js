@@ -18,6 +18,7 @@
   export async function fetchAllProducts() {
     // Nota: para catálogos grandes conviene GraphQL y paginado.
     const res = await api.get('products.json?limit=250');
+    
     return res.data?.products || [];
   }
 

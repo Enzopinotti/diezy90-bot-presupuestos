@@ -1,7 +1,7 @@
 // src/controllers/wati/inbound.controller.js
 // ----------------------------------------------------
 import fs from 'fs';
-import { norm, isNewCommand, isContinueCommand } from './utils.js';
+import { norm, isNewCommand } from './utils.js';
 import { handleGreetingsOrCatalog } from './greetings.controller.js';
 import { startBudget, handleBudgetMessage } from './budget.controller.js';
 import { getSession, getSnapshot, setSession, markInboundIfNew } from '../../services/sessionService.js';
@@ -39,8 +39,47 @@ export async function watiInboundController(req, res) {
     // Texto base
     let text = (body?.text || body?.message || '').toString().trim();
 
+    // 🎛️ Manejo de respuestas de botones interactivos
+    if (body?.interactiveButtonReply?.id) {
+      const btnId = body.interactiveButtonReply.id;
+      const btnTitle = body.interactiveButtonReply.title || '';
+      console.log('🔘 [BUTTON] Respuesta de botón:', btnId, 'Title:', btnTitle);
+
+      // Mapear botones a comandos (por ID o por Título si WATI devuelve números)
+      if (btnId === 'presupuesto' || btnTitle.includes('Presupuesto')) text = 'PRESUPUESTO';
+      else if (btnId === 'catalogo' || btnTitle.includes('Catálogo')) text = 'CATALOGO';
+      else if (btnId === 'continuar' || btnTitle === 'Continuar') text = 'CONTINUAR';
+      else if (btnId === 'nuevo' || btnTitle === 'Nuevo') text = 'NUEVO';
+
+      else if (btnId === 'finalize' || btnTitle.includes('Finalizar')) text = 'CONFIRMAR';
+      else if (btnId === 'edit' || btnTitle.includes('Editar')) text = 'EDITAR';
+      else if (btnId === 'confirm_no' || btnTitle === '❌ Cancelar') text = 'CANCELAR';
+
+      else if (btnId === 'cancel_yes' || btnTitle.includes('Sí, cancelar')) text = 'CANCELAR SI';
+      else if (btnId === 'cancel_no' || btnTitle.includes('No, seguir')) text = 'NO';
+
+      else if (btnId === 'confirm_add_yes' || btnTitle.includes('Sí, agregar')) text = 'si';
+      else if (btnId === 'confirm_add_no' || btnTitle === '❌ No') text = 'no';
+
+      else text = btnTitle || text;
+
+      // IMPORTANTE: Actualizar body.text para que los handlers reciban el comando mapeado
+      body.text = text;
+    }
+
+    if (body?.listReply?.id) {
+      const rowId = body.listReply.id;
+      console.log('📋 [LIST] Respuesta de lista:', rowId);
+      text = rowId;
+      // IMPORTANTE: Actualizar body.text para que los handlers reciban el ID
+      body.text = text;
+    }
+
     // Media desde WATI (viene como URL en body.data)
-    if (body?.type && body?.data && (body.type === 'audio' || body.type === 'image')) {
+    // 🎯 PRIORIDAD: Si ya hay texto, ignorar audio/imagen
+    const hasText = text && text.trim().length > 0;
+
+    if (body?.type && body?.data && (body.type === 'audio' || body.type === 'image') && !hasText) {
       const mediaUrl = body.data;
       const ext = body.type === 'audio' ? 'opus' : 'jpg';
       const tmpPath = `/tmp/wati-${Date.now()}.${ext}`;
@@ -151,54 +190,10 @@ export async function watiInboundController(req, res) {
     // Tags internos (#algo)
     if (T.startsWith('#')) return;
 
-    // —— CONTINUAR ——
-    if (isContinueCommand(T)) {
-      const snap = await getSnapshot(phone);
-      if (!snap) {
-        await sendText(phone, 'No tengo un presupuesto anterior para continuar. Escribí *PRESUPUESTO* para empezar uno.');
-        return;
-      }
-
-      // Feedback: cargando presupuesto anterior
-      await sendText(phone, `Cargando tu presupuesto *${snap.number}*... 📋`);
-
-      const idx = await buildProductIndex();
-      const items = [];
-      for (const s of snap.items || []) {
-        const line = sanitizeText(s.title);
-        const r = await smartMatch(line, idx, s.qty || 1);
-        for (const ac of r.accepted) {
-          const totals = computeLineTotals(ac.variant, ac.qty);
-          items.push({
-            productId: ac.product.id,
-            variantId: ac.variant.id,
-            title: `${ac.product.title} ${ac.variant.title !== 'Default Title' ? ac.variant.title : ''}`.trim(),
-            qty: ac.qty,
-            amounts: { lista: totals.lista, transferencia: totals.transferencia, efectivo: totals.efectivo }
-          });
-        }
-      }
-      await startBudget({ phone, silent: true });
-      const sess = await getSession(phone);
-      await setSession(phone, { ...sess, items });
-      await sendText(phone, 'Perfecto, retomemos tu último presupuesto 👇');
-      await handleBudgetMessage(req, { text: 'VER' }, phone);
-      return;
-    }
-
     // —— NUEVO / PRESUPUESTO ——
     if (isNewCommand(T) || isBudgetCommand(T)) {
-      const snap = await getSnapshot(phone);
       await startBudget({ phone }); // acá sí queremos el mensaje largo
-      if (snap) {
-        const when = fmtExpiry(snap.expiresAt ?? (snap.savedAt ? (snap.savedAt + 1000 * 60 * 60 * 24 * (snap.budgetValidityDays || 1)) : null));
-        await sendText(
-          phone,
-          `Dato: todavía tengo guardado tu presupuesto *${snap.number}*` +
-          (when ? ` (vigente hasta ${when})` : '') +
-          `. Si querés volver a ese, decí *CONTINUAR*.`
-        );
-      }
+      // Ya no mostramos mensaje de snapshot guardado
       return;
     }
 
@@ -234,22 +229,25 @@ export async function watiInboundController(req, res) {
     console.log('🎯 [FLOW] isLikelyBudgetList retornó:', looksLikeBudget);
 
     if (looksLikeBudget) {
-      // Feedback: detectando lista
       console.log('✅ [FLOW] Activando modo presupuesto automáticamente...');
-      await sendText(phone, 'Detecté una lista de productos. Activando modo presupuesto... 🧱');
 
+      // Auto-start silencioso, sin mensaje extra
       await startBudget({ phone, silent: true });
       console.log('📋 [FLOW] Procesando lista con texto:', text);
+
       // Pasar el texto completo a handleBudgetMessage
       await handleBudgetMessage(req, { ...body, text }, phone);
       return;
     }
 
 
-    console.log('⚠️ [FLOW] No parece una lista de presupuesto, no se auto-inicia');
+    console.log('⚠️ [FLOW] No parece una lista de presupuesto, mostrando menú principal');
 
-
-    // Fuera de presupuesto: silencio (WATI maneja plantilla)
+    // Si llegamos aquí sin responder, mostramos el menú principal
+    await sendInteractiveButtons(phone, '¿En qué puedo ayudarte?', [
+      { id: 'presupuesto', title: '📋 Presupuesto' },
+      { id: 'catalogo', title: '📚 Catálogo' }
+    ]);
     return;
 
   } catch (err) {

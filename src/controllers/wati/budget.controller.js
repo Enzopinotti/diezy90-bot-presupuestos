@@ -1,11 +1,11 @@
 // src/controllers/wati/budget.controller.js
-// ----------------------------------------------------
+// ---------------------------------------------------
 import fs from 'fs/promises';
 import path from 'path';
 
 import { env } from '../../config/env.js';
 import { getSession, setSession, bumpSession, clearSession, saveSnapshot } from '../../services/sessionService.js';
-import { sendText, sendPdf } from '../../services/watiService.js';
+import { sendText, sendPdf, sendInteractiveButtons, sendInteractiveList } from '../../services/watiService.js';
 import { buildProductIndex } from '../../services/shopifyService.js';
 import { computeLineTotals, currency as _currency } from '../../services/priceService.js';
 import { generateBudgetPDF } from '../../services/pdfService.js';
@@ -27,8 +27,17 @@ import { trackLastAction, resolveTargetRef, applyRelativeAdjust } from '../../se
 import { logUnknown, logNotFound } from '../../services/insightsService.js';
 import { answerDelivery, answerHours, answerLocation, answerPayment, answerStockGeneric } from '../../services/commerceFaqService.js';
 
-const GREETINGS = /\b(hola|buen dia|buenos dias|buenas|que tal|menu|men[uú]|inicio|start|hello|hi)\b/i;
+const GREETINGS = /\b(hola|buen dia|buenos dias|buenas|que tal|menu|men[uú]|inicio|start|hello|hi|ahola|holaa|holis)\b/i;
 function currency(n) { return _currency(n); }
+
+function formatPriceARS(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return null;
+  return num.toLocaleString('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
 
 // YES/NO flexibles para confirmaciones (agrego variantes coloquiales)
 const YES_RE = /^(si|sí|dale|ok(ay)?|de una|va|joya|perfecto|okey)\b/i;
@@ -85,7 +94,11 @@ async function maybeResolveCancel({ phone, text, sess }) {
   // Sí → cancelar presupuesto
   sess.pendingCancel = null;
   await clearSession(phone);
-  await sendText(phone, 'Presupuesto cancelado ✅. Escribí *PRESUPUESTO* cuando quieras empezar uno nuevo.');
+  await sendText(phone, 'Presupuesto cancelado ✅.');
+  await sendInteractiveButtons(phone, '¿En qué puedo ayudarte?', [
+    { id: 'presupuesto', title: '📋 Presupuesto' },
+    { id: 'catalogo', title: '📚 Catálogo' }
+  ]);
   return true;
 }
 
@@ -128,7 +141,182 @@ async function maybeResolveConfirmation({ phone, text, sess }) {
   return true;
 }
 
+// Handler para edición de items
+async function maybeResolveEditMode({ phone, text, sess }) {
+  if (!sess?.editMode) return false;
+
+  // Stage 1: Seleccionando qué item editar
+  if (sess.editMode.stage === 'selecting_item') {
+    console.log('✏️ [EDIT] text recibido:', text);
+    console.log('✏️ [EDIT] sess.items:', JSON.stringify(sess.items?.map(i => i.title)));
+
+    let itemIndex;
+    if (text.startsWith('edit_item_')) {
+      itemIndex = parseInt(text.replace('edit_item_', ''));
+    } else if (/^\d+-\d+$/.test(text)) {
+      const parts = text.split('-');
+      itemIndex = parseInt(parts[1]);
+    } else {
+      console.log('✏️ [EDIT] Texto no matchea ningún patrón');
+      await sendText(phone, 'No encontré ese item. Intentá de nuevo.');
+      sess.editMode = null;
+      await setSession(phone, sess);
+      return true;
+    }
+
+    console.log('✏️ [EDIT] itemIndex parseado:', itemIndex);
+    console.log('✏️ [EDIT] sess.items.length:', sess.items?.length);
+
+    const item = sess.items[itemIndex];
+    console.log('✏️ [EDIT] item encontrado:', item ? item.title : 'undefined');
+
+    if (!item) {
+      console.log('✏️ [EDIT] Item no encontrado en sess.items');
+      await sendText(phone, 'No encontré ese item. Intentá de nuevo.');
+      sess.editMode = null;
+      await setSession(phone, sess);
+      return true;
+    }
+
+    // Buscar TODOS los productos relacionados (mismo tipo base)
+    const idx = await buildProductIndex();
+    const product = idx.find(p => p.id === item.productId);
+
+    if (!product) {
+      await sendText(phone, 'No pude cargar las variantes de este producto.');
+      sess.editMode = null;
+      await setSession(phone, sess);
+      return true;
+    }
+
+    // Extraer palabra clave base del producto (ej: "arena", "cemento", "piedra")
+    const titleLower = product.title.toLowerCase();
+    let baseKeyword = '';
+    if (titleLower.includes('arena')) baseKeyword = 'arena';
+    else if (titleLower.includes('cemento')) baseKeyword = 'cemento';
+    else if (titleLower.includes('piedra')) baseKeyword = 'piedra';
+    else if (titleLower.includes('cal')) baseKeyword = 'cal';
+    else if (titleLower.includes('ladrillo')) baseKeyword = 'ladrillo';
+    else baseKeyword = titleLower.split(' ')[0]; // Primera palabra como fallback
+
+    // Buscar todos los productos que contengan esa palabra clave
+    const relatedProducts = idx.filter(p =>
+      p.title.toLowerCase().includes(baseKeyword) &&
+      p.variants?.length > 0
+    );
+
+    if (!relatedProducts.length) {
+      await sendText(phone, 'No encontré productos relacionados para editar.');
+      sess.editMode = null;
+      await setSession(phone, sess);
+      return true;
+    }
+
+    // Crear lista de todas las opciones (productos + variantes)
+    const allOptions = [];
+    relatedProducts.forEach((prod, prodIdx) => {
+      prod.variants.forEach((v, varIdx) => {
+        allOptions.push({
+          productId: prod.id,
+          variantId: v.id,
+          title: humanizeName(`${prod.title} ${v.title !== 'Default Title' ? v.title : ''}`.trim()),
+          price: v.price || 0
+        });
+      });
+    });
+
+    // Limitar a 10 opciones para la lista interactiva de WATI
+    const limitedOptions = allOptions.slice(0, 10);
+
+    const variantRows = limitedOptions.map((opt, optIdx) => ({
+      id: `0-${optIdx}`,
+      title: opt.title.substring(0, 22),
+      description: currency(opt.price)
+    }));
+
+    sess.editMode = { stage: 'selecting_variant', itemIndex, options: limitedOptions };
+    await setSession(phone, sess);
+
+    await sendInteractiveList(
+      phone,
+      `Opciones de ${baseKeyword.toUpperCase()}:`,
+      'Ver opciones',
+      [{ title: 'Productos disponibles', rows: variantRows }]
+    );
+    return true;
+  }
+
+  // Stage 2: Seleccionando variante/producto
+  if (sess.editMode.stage === 'selecting_variant') {
+    const itemIndex = sess.editMode.itemIndex;
+    const options = sess.editMode.options || [];
+    let optionIndex;
+
+    if (text.startsWith('edit_variant_')) {
+      const parts = text.replace('edit_variant_', '').split('_');
+      optionIndex = parseInt(parts[1]);
+    } else if (/^\d+-\d+$/.test(text)) {
+      const parts = text.split('-');
+      optionIndex = parseInt(parts[1]);
+    } else {
+      await sendText(phone, 'No encontré esa opción. Intentá de nuevo.');
+      sess.editMode = null;
+      await setSession(phone, sess);
+      return true;
+    }
+
+    const selectedOption = options[optionIndex];
+    if (!selectedOption) {
+      await sendText(phone, 'No encontré esa opción. Intentá de nuevo.');
+      sess.editMode = null;
+      await setSession(phone, sess);
+      return true;
+    }
+
+    const item = sess.items[itemIndex];
+    const idx = await buildProductIndex();
+    const newProduct = idx.find(p => p.id === selectedOption.productId);
+    const newVariant = newProduct?.variants?.find(v => v.id === selectedOption.variantId);
+
+    if (!newVariant) {
+      await sendText(phone, 'No encontré ese producto. Intentá de nuevo.');
+      sess.editMode = null;
+      await setSession(phone, sess);
+      return true;
+    }
+
+    // Actualizar item con nuevo producto/variante
+    const totals = computeLineTotals(newVariant, item.qty);
+
+    sess.items[itemIndex] = {
+      ...item,
+      productId: newProduct.id,
+      variantId: newVariant.id,
+      title: selectedOption.title,
+      amounts: totals
+    };
+    sess.editMode = null;
+    await setSession(phone, sess);
+
+    await sendText(phone, `✅ Actualizado a *${selectedOption.title}*`);
+    await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+    const buttons = [];
+    if (sess.items.length > 0) {
+      buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+      buttons.push({ id: 'edit', title: '✏️ Editar' });
+    }
+    buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
+    return true;
+  }
+
+  return false;
+}
+
 async function maybeResolvePendingSelect({ phone, text, sess }) {
+  // Si estamos en modo edición, NO procesar aquí
+  if (sess?.editMode) return false;
   if (!sess?.pendingSelect) return false;
   const { purpose, options, qty } = sess.pendingSelect;
   const n = Number(String(text).trim());
@@ -158,9 +346,18 @@ async function maybeResolvePendingSelect({ phone, text, sess }) {
 
       await sendText(
         phone,
-        `El *${title}* sale *${currency(unit)}* por unidad.\n` +
-        `¿Lo agrego x *${qty || 1}* al presupuesto? (respondé *sí* o *no*)`
+        `El *${title}* sale *${currency(unit)}* por unidad.`
       );
+
+      await sendInteractiveButtons(
+        phone,
+        `¿Lo agrego x *${qty || 1}* al presupuesto?`,
+        [
+          { id: 'confirm_add_yes', title: '✅ Sí, agregar' },
+          { id: 'confirm_add_no', title: '❌ No' }
+        ]
+      );
+
       sess.pendingConfirm = { action: 'ADD', productId: product.id, variantId: variant.id, qty: qty || 1 };
     }
     sess.pendingSelect = null;
@@ -196,17 +393,32 @@ async function maybeResolvePendingSelect({ phone, text, sess }) {
 
 // Cola de aclaraciones para ADD (sess.pending.queue)
 async function maybeResolvePending({ phone, text, sess }) {
+  // Si estamos en modo edición, NO procesar aquí - dejar que el handler de edición lo maneje
+  if (sess?.editMode) return false;
   if (!sess?.pending) return false;
   const { options, qty, queue = [] } = sess.pending;
 
-  const n = Number(String(text).trim());
   let chosen = null;
 
-  if (Number.isFinite(n) && n >= 1 && n <= options.length) {
-    chosen = options[n - 1];
+  // Detectar respuesta de lista interactiva (product_XXXXXX)
+  if (String(text).startsWith('product_')) {
+    chosen = options.find(o => o.id === text);
+  } else if (/^\d+-\d+$/.test(String(text).trim())) {
+    // Formato "0-2" de listas interactivas: sección-ítem
+    const parts = String(text).trim().split('-');
+    const itemIdx = parseInt(parts[1]);
+    if (itemIdx >= 0 && itemIdx < options.length) {
+      chosen = options[itemIdx];
+    }
   } else {
-    const t = String(text).toLowerCase();
-    chosen = options.find(o => o.label.toLowerCase().includes(t));
+    // Respuesta numérica tradicional
+    const n = Number(String(text).trim());
+    if (Number.isFinite(n) && n >= 1 && n <= options.length) {
+      chosen = options[n - 1];
+    } else {
+      const t = String(text).toLowerCase();
+      chosen = options.find(o => o.label?.toLowerCase().includes(t) || o.title?.toLowerCase().includes(t));
+    }
   }
 
   if (!chosen) {
@@ -238,8 +450,21 @@ async function maybeResolvePending({ phone, text, sess }) {
     trackLastAction(sess, { index: sess.items.length - 1, productId: product.id, variantId: variant.id });
   }
 
-  if (queue.length) {
+  // Procesar siguiente item de la cola
+  while (queue.length) {
     const [next, ...rest] = queue;
+
+    // Si no hay opciones, saltear y agregar a notFound
+    if (!next.options || next.options.length === 0) {
+      // Extraer término del question para agregarlo a notFound
+      const match = next.question?.match(/\*"([^"]+)"\*/);
+      if (match) {
+        sess.notFound.push(match[1]);
+      }
+      queue = rest;
+      continue;
+    }
+
     sess.pending = {
       question: next.question,
       options: next.options,
@@ -247,13 +472,43 @@ async function maybeResolvePending({ phone, text, sess }) {
       queue: rest
     };
     await setSession(phone, sess);
-    await sendText(phone, next.question);
+
+    // Enviar lista interactiva (no solo texto)
+    if (next.options.length <= 10) {
+      await sendInteractiveList(
+        phone,
+        next.question,
+        'Ver opciones',
+        [{
+          title: 'Productos',
+          rows: next.options.map((opt, i) => ({
+            id: `0-${i}`,
+            title: opt.title,
+            description: opt.description || ''
+          }))
+        }]
+      );
+    } else {
+      // Fallback a texto si hay más de 10
+      const questionLines = next.options.map((o, i) => `${i + 1}. *${o.title}*`);
+      await sendText(phone, next.question + '\n\n' + questionLines.join('\n') + '\n\n👇 Respondé con el número');
+    }
     return true;
   }
 
   sess.pending = null;
   await setSession(phone, sess);
   await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+  // Botones de acción tras mostrar resumen
+  const buttons = [];
+  if (sess.items.length > 0) {
+    buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+    buttons.push({ id: 'edit', title: '✏️ Editar' });
+  }
+  buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+  await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
   return true;
 }
 
@@ -279,8 +534,7 @@ export async function startBudget({ phone, silent = false }) {
     [
       '🧱 *Modo Presupuesto activado* ✅',
       '',
-      'Enviame tu lista de materiales y te armo el presupuesto.',
-      'Podés hacerlo por *texto*, *📷 foto* o *🎤 audio*.',
+      'Enviame tu lista de materiales.',
       '',
       helpBudgetShort()
     ].join('\n')
@@ -355,6 +609,33 @@ export async function handleBudgetMessage(req, body, phone) {
   }
   await bumpSession(phone);
 
+  // Si parece una lista de presupuesto NUEVA, RESET COMPLETO de sesión
+  // para evitar confusión con estados pendientes o items anteriores
+  // PERO: NO resetear si estamos en modo edición
+  if (isLikelyBudgetList(text) && !['CANCEL', 'CONFIRM', 'EXIT_HINT', 'HUMAN', 'EDIT'].includes(intent.type) && !sess.editMode) {
+    console.log('📋 [BUDGET] Lista detectada - RESET completo de sesión');
+
+    // Limpiar TODO para procesar lista fresca
+    sess.items = [];
+    sess.notFound = [];
+    sess.pending = null;
+    sess.pendingSelect = null;
+    sess.pendingCancel = null;
+    sess.pendingConfirm = null;
+
+    intent.type = 'ADD';
+    intent.qty = 1;
+  }
+
+  // —— EDIT MODE tiene prioridad absoluta ——
+  console.log('📝 [DEBUG] sess.editMode:', JSON.stringify(sess?.editMode));
+  if (sess.editMode) {
+    console.log('✏️ [EDIT] Entrando a maybeResolveEditMode con stage:', sess.editMode.stage);
+    const handled = await maybeResolveEditMode({ phone, text, sess });
+    console.log('✏️ [EDIT] maybeResolveEditMode retornó:', handled);
+    if (handled) return;
+  }
+
   // —— Resoluciones prioritarias ——
   if (await maybeResolveCancel({ phone, text, sess })) return;
   if (await maybeResolveConfirmation({ phone, text, sess })) return;
@@ -371,13 +652,6 @@ export async function handleBudgetMessage(req, body, phone) {
     return;
   }
 
-  // Si parece una lista de presupuesto y no es un comando explícito, forzar ADD
-  if (isLikelyBudgetList(text) && !['CANCEL', 'CONFIRM', 'EXIT_HINT', 'HUMAN'].includes(intent.type)) {
-    console.log('📋 [BUDGET] Detectado como lista de presupuesto (override a ADD)');
-    intent.type = 'ADD';
-    intent.qty = 1;
-  }
-
   if (intent.type === 'EXIT_HINT') { await sendText(phone, 'Para finalizar escribí *CANCELAR*.'); return; }
 
   // CANCEL
@@ -385,12 +659,19 @@ export async function handleBudgetMessage(req, body, phone) {
     T = text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toUpperCase().trim();
     if (/\bCANCELAR\s+SI\b/.test(T)) {
       await clearSession(phone);
-      await sendText(phone, 'Presupuesto cancelado ✅. Escribí *PRESUPUESTO* cuando quieras empezar uno nuevo.');
+      await sendText(phone, 'Presupuesto cancelado ✅.');
+      await sendInteractiveButtons(phone, '¿En qué puedo ayudarte?', [
+        { id: 'presupuesto', title: '📋 Presupuesto' },
+        { id: 'catalogo', title: '📚 Catálogo' }
+      ]);
       return;
     }
     sess.pendingCancel = { at: Date.now() };
     await setSession(phone, sess);
-    await sendText(phone, '¿Confirmás cancelar el presupuesto? Respondé *sí* o *no*.');
+    await sendInteractiveButtons(phone, '¿Confirmás cancelar el presupuesto?', [
+      { id: 'cancel_yes', title: '✅ Sí, cancelar' },
+      { id: 'cancel_no', title: '❌ No, seguir' }
+    ]);
     return;
   }
 
@@ -413,6 +694,15 @@ export async function handleBudgetMessage(req, body, phone) {
     await setSession(phone, sess);
     if (!changed) { await sendText(phone, 'No pude identificar el ítem. Escribí *VER* para ver la lista con números.'); return; }
     await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+    const buttons = [];
+    if (sess.items.length > 0) {
+      buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+      buttons.push({ id: 'edit', title: '✏️ Editar' });
+    }
+    buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
     return;
   }
 
@@ -458,9 +748,18 @@ export async function handleBudgetMessage(req, body, phone) {
 
     await sendText(
       phone,
-      `El *${title}* sale *${currency(unit)}* por unidad.\n` +
-      `¿Lo agrego x *${ac.qty || intent.qty || 1}* al presupuesto? (respondé *sí* o *no*)`
+      `El *${title}* sale *${currency(unit)}* por unidad.`
     );
+
+    await sendInteractiveButtons(
+      phone,
+      `¿Lo agrego x *${ac.qty || intent.qty || 1}* al presupuesto?`,
+      [
+        { id: 'confirm_add_yes', title: '✅ Sí, agregar' },
+        { id: 'confirm_add_no', title: '❌ No' }
+      ]
+    );
+
     sess.pendingConfirm = { action: 'ADD', productId: ac.product.id, variantId: ac.variant.id, qty: ac.qty || intent.qty || 1 };
     await setSession(phone, sess);
     return;
@@ -520,11 +819,13 @@ export async function handleBudgetMessage(req, body, phone) {
       await fs.writeFile(tmpPath, buffer);
 
       await sendPdf(phone, tmpPath, path.basename(tmpPath));
-      await sendText(
-        phone,
-        'Listo ✅ Te envié el *PDF* del presupuesto.\n' +
-        'Cerré este presupuesto. Escribí *PRESUPUESTO* para comenzar uno nuevo.'
-      );
+      await sendText(phone, 'Listo ✅ Te envié el *PDF* del presupuesto.');
+
+      // Volver al menú principal con botones
+      await sendInteractiveButtons(phone, '¿En qué más te puedo ayudar?', [
+        { id: 'presupuesto', title: '📝 Nuevo Presupuesto' },
+        { id: 'catalogo', title: '📦 Ver Catálogo' }
+      ]);
 
       const resume = {
         number,
@@ -537,7 +838,6 @@ export async function handleBudgetMessage(req, body, phone) {
         }
       };
 
-      await saveSnapshot(phone, resume);
       await clearSession(phone);
       return;
 
@@ -545,13 +845,42 @@ export async function handleBudgetMessage(req, body, phone) {
       req?.log?.error?.({ err }, 'PDF generation failed');
       await sendText(
         phone,
-        'No pude generar el PDF en este momento 😓. ' +
-        'Te dejo el resumen acá y, si querés, se lo paso a un asesor para que te lo envíe firmado en PDF.\n\n' +
-        renderSummary(sess.items, filterReserved(sess.notFound))
+        'Hubo un error al generar el PDF. Intentá de nuevo o contactá al soporte.'
       );
+    }
+    return;
+  }
+
+  // EDIT - Editar items del presupuesto
+  if (intent.type === 'EDIT') {
+    if (!sess.items?.length) {
+      await sendText(phone, 'No hay ítems para editar. Enviá tu lista primero.');
       return;
     }
+
+    // Mostrar lista de items para que elija cuál editar
+    const itemRows = sess.items.map((item, idx) => ({
+      id: `edit_item_${idx}`,
+      title: `${item.qty}x ${item.title.substring(0, 20)}`,
+      description: currency(item.amounts.lista)
+    }));
+
+    sess.editMode = { stage: 'selecting_item' };
+    await setSession(phone, sess);
+
+    await sendInteractiveList(
+      phone,
+      '¿Qué producto querés modificar?',
+      'Ver productos',
+      [{
+        title: 'Items del presupuesto',
+        rows: itemRows
+      }]
+    );
+    return;
   }
+
+  // NOTE: editMode handlers ahora están en maybeResolveEditMode() que se llama antes
 
   // REMOVE_INDEX
   if (intent.type === 'REMOVE_INDEX' && sess.items.length) {
@@ -561,6 +890,15 @@ export async function handleBudgetMessage(req, body, phone) {
       sess.items = mergeSameItems(sess.items);
       await setSession(phone, sess);
       await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+      const buttons = [];
+      if (sess.items.length > 0) {
+        buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+        buttons.push({ id: 'edit', title: '✏️ Editar' });
+      }
+      buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+      await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
     } else {
       await sendText(phone, 'Número inválido. Escribí *VER* para ver la lista con números.');
     }
@@ -580,6 +918,15 @@ export async function handleBudgetMessage(req, body, phone) {
       trackLastAction(sess, { index: idx, productId: it.productId, variantId: it.variantId });
       await setSession(phone, sess);
       await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+      const buttons = [];
+      if (sess.items.length > 0) {
+        buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+        buttons.push({ id: 'edit', title: '✏️ Editar' });
+      }
+      buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+      await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
     } else {
       await sendText(phone, 'Formato inválido. Ej: CAMBIAR 2 x 5');
     }
@@ -595,6 +942,15 @@ export async function handleBudgetMessage(req, body, phone) {
     sess.items = mergeSameItems(sess.items);
     await setSession(phone, sess);
     await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+    const buttons = [];
+    if (sess.items.length > 0) {
+      buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+      buttons.push({ id: 'edit', title: '✏️ Editar' });
+    }
+    buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
     return;
   }
 
@@ -616,6 +972,10 @@ export async function handleBudgetMessage(req, body, phone) {
     sess.items = mergeSameItems(sess.items);
     await setSession(phone, sess);
     await sendText(phone, renderSummary(sess.items, sess.notFound));
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', [
+      { id: 'finalize', title: '✅ Finalizar (PDF)' },
+      { id: 'confirm_no', title: '❌ Cancelar' }
+    ]);
     return;
   }
 
@@ -625,6 +985,15 @@ export async function handleBudgetMessage(req, body, phone) {
     sess.items = mergeSameItems(sess.items);
     await setSession(phone, sess);
     await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+    const buttons = [];
+    if (sess.items.length > 0) {
+      buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+      buttons.push({ id: 'edit', title: '✏️ Editar' });
+    }
+    buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
     return;
   }
 
@@ -648,9 +1017,11 @@ export async function handleBudgetMessage(req, body, phone) {
 
     const IGNORE_PHRASES = [
       'hola buenas tardes', 'hola buen dia', 'hola buenos dias', 'hola buenas noches',
-      'hola', 'buen dia', 'buenas', 'saludos', 'gracias', 'muchas gracias', 'por favor',
+      'buenos dias', 'buenas tardes', 'buenas noches', 'buen dia',
+      'hola', 'buenas', 'buenos', 'saludos', 'gracias', 'muchas gracias', 'por favor',
       'quisiera', 'me gustaria', 'necesito', 'quiero', 'precio', 'presupuesto',
-      'buenos dias', 'buenas tardes', 'buenas noches', 'que tal', 'como va', 'como estas'
+      'que tal', 'como va', 'como estas', 'como andas',
+      'ahola', 'holaa', 'holis', 'ordenar', 'pedir', 'dias'
     ].sort((a, b) => b.length - a.length); // Ordenar por longitud para matchear las largas primero
 
     const IGNORE_SUFFIXES = [
@@ -662,14 +1033,19 @@ export async function handleBudgetMessage(req, body, phone) {
       let clean = sanitizeText(line);
       if (!clean) continue;
 
+      // 0. Limpiar puntuación y espacios al inicio
+      clean = clean.replace(/^[,.\-:;\s]+/, '').trim();
+
       // 1. Limpiar frases de inicio (prefijos)
       let changed = true;
       while (changed) {
         changed = false;
         for (const phrase of IGNORE_PHRASES) {
           // Chequear si empieza con la frase seguida de espacio o es la frase exacta
-          if (clean === phrase || clean.startsWith(phrase + ' ')) {
+          if (clean === phrase || clean.startsWith(phrase + ' ') || clean.startsWith(phrase + ',')) {
             clean = clean.substring(phrase.length).trim();
+            // Limpiar puntuación que quedó al inicio
+            clean = clean.replace(/^[,.\-:;\s]+/, '').trim();
             changed = true;
             break; // Reiniciar loop de frases con el nuevo string limpio
           }
@@ -725,7 +1101,11 @@ export async function handleBudgetMessage(req, body, phone) {
 
       const nf = r.notFound.filter(s => !RESERVED_TOKENS.has(sanitizeText(s).toLowerCase()));
       notFound.push(...nf);
-      clarify.push(...r.clarify);
+
+
+      if (r.accepted.length === 0 && r.clarify.length > 0) {
+        clarify.push(...r.clarify);
+      }
 
       for (const ac of r.accepted) {
         const totals = computeLineTotals(ac.variant, ac.qty);
@@ -755,12 +1135,50 @@ export async function handleBudgetMessage(req, body, phone) {
         queue: rest
       };
       await setSession(phone, sess);
-      await sendText(phone, first.question);
+
+      // Usar lista interactiva si hay 10 o menos opciones
+      if (first.useInteractiveList && first.options.length <= 10) {
+        await sendInteractiveList(
+          phone,
+          first.question,
+          'Ver opciones',
+          [{
+            title: 'Productos',
+            rows: first.options.map(opt => ({
+              id: opt.id,
+              title: opt.title,
+              description: opt.description
+            }))
+          }]
+        );
+      } else {
+        // Fallback a texto numerado si son más de 10
+        const questionLines = first.options.map((o, i) => {
+          const priceStr = o.price != null ? `\n   $ ${formatPriceARS(o.price)}` : '';
+          return `${i + 1}. *${o.title}*${priceStr}`;
+        });
+        await sendText(
+          phone,
+          `${first.question}\n\n` +
+          questionLines.join('\n\n') +
+          `\n\n👇 Respondé con el número de la opción correcta`
+        );
+      }
       return;
     }
 
     await setSession(phone, sess);
     await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+    // Botones: Finalizar, Editar (si hay items), Cancelar
+    const buttons = [];
+    if (sess.items.length > 0) {
+      buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+      buttons.push({ id: 'edit', title: '✏️ Editar' });
+    }
+    buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
     return;
   }
 
@@ -769,11 +1187,28 @@ export async function handleBudgetMessage(req, body, phone) {
   await setSession(phone, sess);
   await logUnknown({ phone, text, mode: 'BUDGET' });
 
-  const tip = 'No te entendí bien 🤏. Probá con: "arena bolsón 2", "sacá piedra", "cambiá cemento a 5", *o* "precio de cemento". También podés mandar 📷 foto o 🎤 audio.';
-  if (sess.items?.length) await sendText(phone, tip + '\n\n' + renderSummary(sess.items, sess.notFound));
-  else await sendText(phone, tip + '\n' + 'Escribí *PRESUPUESTO* para iniciar.');
+  if (sess.items?.length) {
+    // Tiene items - mostrar resumen y opciones
+    await sendText(
+      phone,
+      `No te entendí 🤔\n\nPodés seguir agregando productos (texto, foto 📷 o audio 🎤) o elegir una opción.\n\n${renderSummary(sess.items, sess.notFound)}`
+    );
+    await sendInteractiveButtons(phone, '¿Qué querés hacer?', [
+      { id: 'finalize', title: '✅ Finalizar (PDF)' },
+      { id: 'edit', title: '✏️ Editar' },
+      { id: 'confirm_no', title: '❌ Cancelar' }
+    ]);
+  } else {
+    // Sin items - dar instrucciones claras
+    await sendText(
+      phone,
+      'No te entendí 🤔\n\n' +
+      'Enviame tu lista de materiales por *texto*, *foto* 📷 o *audio* 🎤.\n\n' +
+      '*Ejemplo:* 2 bolsones de arena, 4 bolsas de cemento, 1 piedra'
+    );
+  }
 
-  if (sess.unknownCount >= 2) {
-    await sendText(phone, 'Si preferís, te contacto con un *asesor humano*. Decime "*asesor*" y lo gestiono 👤.');
+  if (sess.unknownCount >= 3) {
+    await sendText(phone, '💬 Si preferís, te contacto con un asesor. Escribí *ASESOR* 👤.');
   }
 }

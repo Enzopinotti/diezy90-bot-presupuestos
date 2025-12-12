@@ -11,6 +11,7 @@
 
 import glossary from '../data/glossary.json' with { type: 'json' };
 import { normalizeTerms } from './synonyms.js';
+import { getDefaultProduct, hasSpecifications } from './defaultProductsService.js';
 
 /* ----------------------------------------------
  * Normalización base tolerante
@@ -253,18 +254,18 @@ function directProductStrong(cleanText, productIndex = []) {
  * Construcción de mensaje ask (desambiguación)
  * ------------------------------------------- */
 function buildClarify(lineText, products = [], qty = 1, priceMap = {}) {
-  // Mostrar TODAS las opciones disponibles (sin límite de 6)
+  // Preparar opciones para lista interactiva
   const opts = products.map((p, i) => {
     const v = (p.variants || [])[0] || {};
     const rawPrice = priceMap[p.id] ?? Number(v.price ?? NaN);
     const price = Number.isFinite(rawPrice) ? rawPrice : null;
 
-    const label = `${i + 1}) ${humanizeName(p.title)}`;
-
     return {
-      label,
+      id: `product_${p.id}`,  // ID único para el botón
       productId: p.id,
       variantId: v.id || null,
+      title: humanizeName(p.title).substring(0, 24), // Max 24 chars para WATI
+      description: price != null ? `$ ${formatPriceARS(price)}` : '',
       fullTitle: humanizeName(
         `${p.title} ${v.title && v.title !== 'Default Title' ? v.title : ''}`.trim()
       ),
@@ -272,25 +273,15 @@ function buildClarify(lineText, products = [], qty = 1, priceMap = {}) {
     };
   });
 
-  const questionLines = opts.map((o, i) => {
-    const priceStr = o.price != null ? `\n   $ ${formatPriceARS(o.price)}` : '';
-    // Formato más profesional:
-    // 1. Nombre del Producto
-    //    $ 10.500
-    return `${i + 1}. *${o.label.split(') ')[1]}*${priceStr}`;
-  });
-
   // Limpiar término de búsqueda para mostrar (quitar "de ", "del ")
   const cleanTerm = lineText.replace(/^(de|del|el|la|los|las)\s+/i, '');
   const qtyPrefix = qty > 1 ? `${qty} ` : '';
 
   return {
-    question:
-      `🔎 Con *"${qtyPrefix}${cleanTerm}"* encontré estas opciones:\n\n` +
-      questionLines.join('\n\n') +
-      `\n\n👇 Respondé con el número de la opción correcta`,
+    question: `Con *"${qtyPrefix}${cleanTerm}"* encontré estas opciones:`,
     options: opts,
-    qty
+    qty,
+    useInteractiveList: opts.length <= 10  // WATI permite máx 10 opciones en lista
   };
 }
 
@@ -428,6 +419,62 @@ export async function smartMatch(text, productIndex, qty = 1, priceMap = {}) {
   // Texto limpio sin cantidad
   const normalized = normalizeTerms(corrected);
   const coreForGlossary = normalized.replace(/\b(?:x|por|a)\s*\d+(?:[.,]\d+)?\b/gi, ' ').trim();
+
+  // 0.5) Detectar productos por defecto para términos genéricos sin especificaciones
+  if (!hasSpecifications(coreForGlossary || normalized)) {
+    const defaultProductKeyword = getDefaultProduct(coreForGlossary || normalized);
+    if (defaultProductKeyword) {
+      console.log(`🎯 [DEFAULT] Usando producto por defecto para "${text}": ${defaultProductKeyword}`);
+
+      // Buscar el producto por defecto en el índice
+      const prods = findProductsForKeyword(defaultProductKeyword, productIndex);
+
+      if (prods.length === 1) {
+        const p = prods[0].product;
+        accepted.push({
+          product: p,
+          variant: (p.variants || [])[0] || {},
+          qty: requestedQty
+        });
+        return { accepted, clarify, notFound };
+      }
+
+      // Si hay múltiples variantes del producto default, ELEGIR LA PRIMERA AUTOMÁTICAMENTE
+      // El objetivo de defaultProducts es evitar preguntas
+      if (prods.length > 1) {
+        console.log(`🎯 [DEFAULT] Múltiples coincidencias para default (${prods.length}), eligiendo la primera: ${prods[0].product.title}`);
+        const p = prods[0].product;
+        accepted.push({
+          product: p,
+          variant: (p.variants || [])[0] || {},
+          qty: requestedQty
+        });
+        return { accepted, clarify, notFound };
+      }
+
+      // Si no encontramos el producto por defecto, intentar búsqueda más flexible
+      if (prods.length === 0) {
+        console.log(`⚠️ [DEFAULT] No encontré producto para keyword "${defaultProductKeyword}", buscando con texto parcial`);
+        // Buscar con matching más flexible - buscar productos que contengan las palabras
+        const flexProds = productIndex.filter(p => {
+          const title = (p.title || '').toLowerCase();
+          const keywords = defaultProductKeyword.toLowerCase().split(/\s+/);
+          return keywords.every(k => title.includes(k));
+        });
+
+        if (flexProds.length > 0) {
+          console.log(`🎯 [DEFAULT] Encontré ${flexProds.length} producto(s) con búsqueda flexible: ${flexProds[0].title}`);
+          const p = flexProds[0];
+          accepted.push({
+            product: p,
+            variant: (p.variants || [])[0] || {},
+            qty: requestedQty
+          });
+          return { accepted, clarify, notFound };
+        }
+      }
+    }
+  }
 
   // 0) Detectar términos genéricos y forzar desambiguación
   if (isGenericTerm(coreForGlossary || normalized)) {

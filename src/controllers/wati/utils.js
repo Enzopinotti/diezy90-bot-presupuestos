@@ -6,21 +6,11 @@ import { RESERVED_TOKENS } from '../../services/textService.js';
 
 export function helpBudgetShort() {
   return [
-    '📝 *¿Cómo envío mi lista?*',
+    '📝 *Como enviar tu lista:*',
     '',
-    '✍️ *Por texto:*',
-    'Escribí los productos que necesitás, por ejemplo:',
-    '• _2 arena_',
-    '• _5 cemento_',
-    '• _1 piedra bolsón_',
-    '',
-    '📷 *Con foto:*',
-    'Sacale una foto nítida a tu lista y enviala',
-    '',
-    '🎤 *Por audio:*',
-    'Grabá un audio diciendo lo que necesitás',
-    '',
-    ' Cuando termines, escribí *CONFIRMAR* para recibir el PDF'
+    '✍️ *Escribiendo:* _2 arena, 5 cemento, 1 piedra_',
+    '📷 *Con foto:* Sacá una foto de tu lista',
+    '🎤 *Con audio:* Grabá un mensaje de voz'
   ].join('\n');
 }
 
@@ -49,7 +39,8 @@ function validityLine() {
 }
 
 function commandsHintLine() {
-  return '⌨️ Comandos: *CONFIRMAR* (para PDF) • *CANCELAR*';
+  // Removido porque ahora usamos botones
+  return '';
 }
 
 function buildAsciiTable(items = []) {
@@ -96,34 +87,40 @@ export function renderSummary(items = [], notFound = []) {
     efectivo: a.efectivo + (i?.amounts?.efectivo || 0)
   }), { lista: 0, transferencia: 0, efectivo: 0 });
 
-  // Listado numerado amigable y MOBILE FRIENDLY
-  // Formato:
-  // 1. Ladrillo Hueco 12x18x33
-  //    x 100  |  $ 150  |  $ 15.000
-  const bulletLines = list.length
-    ? list.map((i, idx) => {
-      const title = String(i?.title ?? '').trim();
-      const qty = Number(i?.qty ?? 0) || 0;
-      const unit = currencyFmt((i?.amounts?.lista || 0) / Math.max(qty, 1));
-      const sub = currencyFmt(i?.amounts?.lista || 0);
-
-      return `${idx + 1}. *${title}*\n   x ${qty}  |  ${unit}  |  *${sub}*`;
-    })
-    : [];
-
   const out = [];
 
   // Solo agregar encabezado y lista si hay items
   if (list.length) {
     out.push('🧾 *Presupuesto*');
-    out.push(...bulletLines);
+    out.push('```');
+    // Header compacto para pantallas móviles
+    out.push('CANT PRODUCTO           TOTAL');
+    out.push('------------------------------');
+
+    list.forEach((i, idx) => {
+      // Formato compacto para móvil: "2  NombreProd... $12.000"
+      // QTY (2) | TITLE (19) | PRICE (10)
+      const title = String(i?.title ?? '').trim().substring(0, 19);
+      const qty = (Number(i?.qty ?? 0) || 0).toString().padEnd(2);
+
+      // Precio compacto sin signo $ para ahorrar espacio
+      const rawPrice = Math.round(i?.amounts?.lista || 0);
+      const formattedPrice = rawPrice.toLocaleString('es-AR');
+      const sub = `$${formattedPrice}`;
+
+      const line = `${qty} ${title.padEnd(19)} ${sub.padStart(10)}`;
+      out.push(line);
+    });
+
+    out.push('```');
     out.push('');
-    out.push('*Totales*');
-    out.push(`• Subtotal sin descuento: ${currencyFmt(tot.lista)}`);
-    out.push(`• 💵 Total en efectivo (−${Math.round(env.discounts.cash * 100)}%): ${currencyFmt(tot.efectivo)}`);
+    out.push(`💵 *TOTAL: ${currencyFmt(tot.efectivo)}*`);
+    out.push('');
+    out.push('_*Precio de referencia en efectivo_');
     out.push('');
     out.push(validityLine());
-    out.push(commandsHintLine());
+    out.push('');
+    out.push('⚠️ *Flete a confirmar según zona y cantidad*');
   }
 
   const nf = (notFound || []).filter(s => !RESERVED_TOKENS.has(String(s).toLowerCase()));
