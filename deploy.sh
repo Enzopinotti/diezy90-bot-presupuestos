@@ -10,7 +10,7 @@ COMMIT=$(git rev-parse --short HEAD)
 echo "✅ Código actualizado a commit: $COMMIT"
 
 echo "🐳 Reconstruyendo contenedor app..."
-docker compose up -d --build --no-deps app
+docker compose up -d --build
 
 echo "⏳ Esperando a que la app esté lista..."
 sleep 5
