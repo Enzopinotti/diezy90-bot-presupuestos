@@ -21,10 +21,7 @@ export function getDefaultProduct(term) {
     // Estos son nombres exactos de productos y debe buscarse/desambiguarse
     const SPECIFIC_PRODUCTS = [
         'plasticor',
-        'portland',
-        'cpc40',
         'granel',
-        'bolsita',
         'balde',
         '1/2',
         '0.5',
@@ -42,11 +39,11 @@ export function getDefaultProduct(term) {
     // Ej: "arena" SÍ, "media arena" NO, "arena bolsita" NO
 
     // Regex más flexibles:
-    // - Prefijos opcionales: "de", "bolson de", "bolsones de", "1m3 de"
-    // - Sufijos opcionales: "bolson", "bolsones", "1m3", "x 1m3"
+    // - Prefijos opcionales: "de", "bolson de", "bolsones de", "1m3 de", "bolsitas de", "bolsas de"
+    // - Sufijos opcionales: "bolson", "bolsones", "1m3", "x 1m3", "bolsita", "bolsitas"
 
-    const prefix = /(?:^|\s)(?:(?:bols[oó]ne?s?|1\s*m3)\s+de\s+|de\s+)?/i;
-    const suffix = /(?:\s+(?:bols[oó]ne?s?|x?\s*1\s*m3))?$/i;
+    const prefix = /(?:^|\s)(?:(?:bols[oó]ne?s?|bolsitas?|1\s*m3)\s+de\s+|de\s+)?/i;
+    const suffix = /(?:\s+(?:bols[oó]ne?s?|bolsitas?|x?\s*1\s*m3))?$/i;
 
     // Construimos regex dinámicas para no repetir lógica
     const mkRe = (word) => new RegExp(prefix.source + word + suffix.source, 'i');
@@ -75,9 +72,9 @@ export function hasSpecifications(term) {
 
     // Palabras que indican especificaciones
     const specs = [
-        'medio', '1/2', '0.5', 'bolsita',
+        'medio', '1/2', '0.5',
         'granel', 'camion', 'camión', '6m3', '3m3',
-        'balde', 'cpc40', 'hf', 'portland'
+        'balde'
     ];
 
     return specs.some(spec => t.includes(spec));

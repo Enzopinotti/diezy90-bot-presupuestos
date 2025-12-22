@@ -150,17 +150,20 @@ async function maybeResolveEditMode({ phone, text, sess }) {
     console.log('✏️ [EDIT] text recibido:', text);
     console.log('✏️ [EDIT] sess.items:', JSON.stringify(sess.items?.map(i => i.title)));
 
-    let itemIndex;
+    let itemIndex = -1;
     if (text.startsWith('edit_item_')) {
       itemIndex = parseInt(text.replace('edit_item_', ''));
-    } else if (/^\d+-\d+$/.test(text)) {
-      const parts = text.split('-');
+    } else if (/^\d+-\d+$/.test(text.trim())) {
+      const parts = text.trim().split('-');
       itemIndex = parseInt(parts[1]);
+    } else if (/^\d+$/.test(text.trim())) {
+      itemIndex = parseInt(text.trim()) - 1;
     } else {
-      console.log('✏️ [EDIT] Texto no matchea ningún patrón');
-      await sendText(phone, 'No encontré ese item. Intentá de nuevo.');
-      sess.editMode = null;
-      await setSession(phone, sess);
+      console.log('✏️ [EDIT] Texto no matchea ningún patrón:', text);
+      // No reseteamos el modo edición inmediatamente si no entendemos
+      // Podría ser que el usuario esté preguntando algo o queriendo hacer otra cosa
+      // Pero para seguir el flujo actual, lo mantenemos igual pero con un mensaje más claro
+      await sendText(phone, 'No identifiqué qué ítem elegiste. Respondé con el *número* o seleccioná de la lista.');
       return true;
     }
 
@@ -189,21 +192,32 @@ async function maybeResolveEditMode({ phone, text, sess }) {
       return true;
     }
 
-    // Extraer palabra clave base del producto (ej: "arena", "cemento", "piedra")
+    // Extraer palabra clave base del producto (ej: "arena", "cemento", "piedra") para buscar alternativas
     const titleLower = product.title.toLowerCase();
-    let baseKeyword = '';
-    if (titleLower.includes('arena')) baseKeyword = 'arena';
-    else if (titleLower.includes('cemento')) baseKeyword = 'cemento';
-    else if (titleLower.includes('piedra')) baseKeyword = 'piedra';
-    else if (titleLower.includes('cal')) baseKeyword = 'cal';
-    else if (titleLower.includes('ladrillo')) baseKeyword = 'ladrillo';
-    else baseKeyword = titleLower.split(' ')[0]; // Primera palabra como fallback
+    const categories = [
+      'arena', 'cemento', 'piedra', 'cal', 'ladrillo', 'hierro', 'malla',
+      'vigueta', 'escombro', 'tosca', 'plasticor', 'hidrofugo', 'pegamento',
+      'viga', 'columna', 'estribo', 'alambre', 'clavo', 'tornillo', 'perfil', 'chapa'
+    ];
 
-    // Buscar todos los productos que contengan esa palabra clave
-    const relatedProducts = idx.filter(p =>
-      p.title.toLowerCase().includes(baseKeyword) &&
-      p.variants?.length > 0
-    );
+    // Buscar qué categorías están presentes en el título
+    let baseKeywords = categories.filter(cat => titleLower.includes(cat));
+
+    if (baseKeywords.length === 0) {
+      // Fallback a primera palabra, pero quitando plurales simples y siendo tolerante
+      let firstWord = titleLower.split(' ')[0].replace(/s$/, ''); // quitar 's' final simple
+      if (firstWord.length > 3) {
+        baseKeywords = [firstWord];
+      } else {
+        baseKeywords = [titleLower.split(' ')[0]];
+      }
+    }
+
+    // Buscar todos los productos que contengan ALGUNA de esas palabras clave
+    const relatedProducts = idx.filter(p => {
+      const pTitle = p.title.toLowerCase();
+      return baseKeywords.some(kw => pTitle.includes(kw)) && p.variants?.length > 0;
+    });
 
     if (!relatedProducts.length) {
       await sendText(phone, 'No encontré productos relacionados para editar.');
@@ -239,7 +253,7 @@ async function maybeResolveEditMode({ phone, text, sess }) {
 
     await sendInteractiveList(
       phone,
-      `Opciones de ${baseKeyword.toUpperCase()}:`,
+      `Opciones de ${baseKeywords[0]?.toUpperCase() || 'PRODUCTO'}:`,
       'Ver opciones',
       [{ title: 'Productos disponibles', rows: variantRows }]
     );
@@ -250,18 +264,18 @@ async function maybeResolveEditMode({ phone, text, sess }) {
   if (sess.editMode.stage === 'selecting_variant') {
     const itemIndex = sess.editMode.itemIndex;
     const options = sess.editMode.options || [];
-    let optionIndex;
+    let optionIndex = -1;
 
     if (text.startsWith('edit_variant_')) {
       const parts = text.replace('edit_variant_', '').split('_');
       optionIndex = parseInt(parts[1]);
-    } else if (/^\d+-\d+$/.test(text)) {
-      const parts = text.split('-');
+    } else if (/^\d+-\d+$/.test(text.trim())) {
+      const parts = text.trim().split('-');
       optionIndex = parseInt(parts[1]);
+    } else if (/^\d+$/.test(text.trim())) {
+      optionIndex = parseInt(text.trim()) - 1;
     } else {
-      await sendText(phone, 'No encontré esa opción. Intentá de nuevo.');
-      sess.editMode = null;
-      await setSession(phone, sess);
+      await sendText(phone, 'No identifiqué la opción. Respondé con el número de la lista.');
       return true;
     }
 
