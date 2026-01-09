@@ -1,13 +1,21 @@
 <!doctype html>
 <html lang="es">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Presupuesto {{NUMBER}}</title>
 
   <style>
-    * { box-sizing: border-box; }
-    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
 
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -130,9 +138,17 @@
       vertical-align: top;
     }
 
-    .col-desc { width: 58%; }
-    .col-qty  { width: 10%; text-align: center; }
-    .col-price, .col-amount {
+    .col-desc {
+      width: 58%;
+    }
+
+    .col-qty {
+      width: 10%;
+      text-align: center;
+    }
+
+    .col-price,
+    .col-amount {
       width: 16%;
       text-align: right;
       white-space: nowrap;
@@ -195,11 +211,11 @@
 <body>
 
   <!-- Marca de agua -->
-  <img src="{{ASSET_WATERMARK}}" class="watermark"/>
+  <img src="{{ASSET_WATERMARK}}" class="watermark" />
 
   <!-- HEADER -->
   <div class="header">
-    <img src="{{ASSET_LOGO}}" class="logo"/>
+    <img src="{{ASSET_LOGO}}" class="logo" />
 
     <div class="company">
       <small>
@@ -256,12 +272,7 @@
     </div>
 
     <div>
-      <div class="grand">SUBTOTAL SIN DESCUENTO: {{SUBTOTAL_LISTA}}</div>
-
-      <div class="breakdown">
-        Total en efectivo (−{{PCT_CASH}}):  
-        <b>{{TOTAL_EFECTIVO}}</b>
-      </div>
+      <div class="grand">TOTAL: {{TOTAL_EFECTIVO}}</div>
     </div>
   </div>
 
@@ -270,4 +281,5 @@
   </div>
 
 </body>
+
 </html>

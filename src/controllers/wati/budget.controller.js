@@ -39,9 +39,9 @@ function formatPriceARS(n) {
   });
 }
 
-// YES/NO flexibles para confirmaciones (agrego variantes coloquiales)
-const YES_RE = /^(si|sí|dale|ok(ay)?|de una|va|joya|perfecto|okey)\b/i;
-const NO_RE = /^(no|nop|nope|mejor no|dejalo|más tarde|mas tarde|paso|no gracias)\b/i;
+// YES/NO flexibles para confirmaciones (agrego variantes coloquiales y IDs de botones)
+const YES_RE = /^(si|sí|dale|ok(ay)?|de una|va|joya|perfecto|okey|confirm_add_yes|confirm_cancel_yes)\b/i;
+const NO_RE = /^(no|nop|nope|mejor no|dejalo|dejemoslo|más tarde|mas tarde|paso|no gracias|confirm_add_no|confirm_cancel_no|confirm_no)\b/i;
 
 // ——— Helpers ———
 function filterReserved(list = []) {
@@ -141,191 +141,248 @@ async function maybeResolveConfirmation({ phone, text, sess }) {
   return true;
 }
 
+// Helper para iniciar la fase de selección de variante/cantidad para un item específico
+async function startEditForItem(phone, sess, itemIndex) {
+  const item = sess.items[itemIndex];
+  if (!item) {
+    await sendText(phone, 'No encontré ese item. Intentá de nuevo.');
+    sess.editMode = null;
+    await setSession(phone, sess);
+    return true;
+  }
+
+  const idx = await buildProductIndex();
+  const product = idx.find(p => p.id === item.productId);
+
+  if (!product) {
+    await sendText(phone, 'No pude cargar las variantes de este producto.');
+    sess.editMode = null;
+    await setSession(phone, sess);
+    return true;
+  }
+
+  const titleLower = product.title.toLowerCase();
+  const categories = [
+    'arena', 'cemento', 'piedra', 'cal', 'ladrillo', 'hierro', 'malla',
+    'vigueta', 'escombro', 'tosca', 'plasticor', 'hidrofugo', 'pegamento',
+    'ceramico', 'impermeabilizante', 'tapa', 'viga', 'columna', 'estribo',
+    'alambre', 'clavo', 'tornillo', 'perfil', 'chapa'
+  ];
+
+  let baseKeywords = categories.filter(cat => titleLower.includes(cat));
+  if (baseKeywords.length === 0) {
+    let firstWord = titleLower.split(' ')[0].replace(/s$/, '');
+    baseKeywords = firstWord.length > 3 ? [firstWord] : [titleLower.split(' ')[0]];
+  }
+
+  const relatedProducts = idx.filter(p => {
+    const pTitle = p.title.toLowerCase();
+    return baseKeywords.some(kw => pTitle.includes(kw)) && p.variants?.length > 0;
+  });
+
+  if (!relatedProducts.length) {
+    await sendText(phone, 'No encontré productos relacionados para editar.');
+    sess.editMode = null;
+    await setSession(phone, sess);
+    return true;
+  }
+
+  const allOptions = [];
+  relatedProducts.forEach(prod => {
+    prod.variants.forEach(v => {
+      allOptions.push({
+        productId: prod.id,
+        variantId: v.id,
+        title: humanizeName(`${prod.title} ${v.title !== 'Default Title' ? v.title : ''}`.trim()),
+        price: v.price || 0
+      });
+    });
+  });
+
+  const limitedOptions = allOptions.slice(0, 10);
+  const variantRows = limitedOptions.map((opt, optIdx) => ({
+    id: `0-${optIdx}`,
+    title: opt.title.substring(0, 22),
+    description: currency(opt.price)
+  }));
+
+  sess.editMode = { stage: 'selecting_variant', itemIndex, options: limitedOptions };
+  await setSession(phone, sess);
+
+  await sendInteractiveList(
+    phone,
+    `Opciones de ${baseKeywords[0]?.toUpperCase() || 'PRODUCTO'}:`,
+    'Ver opciones',
+    [{ title: 'Productos disponibles', rows: variantRows }]
+  );
+  return true;
+}
+
 // Handler para edición de items
 async function maybeResolveEditMode({ phone, text, sess }) {
   if (!sess?.editMode) return false;
 
-  // Stage 1: Seleccionando qué item editar
-  if (sess.editMode.stage === 'selecting_item') {
-    console.log('✏️ [EDIT] text recibido:', text);
-    console.log('✏️ [EDIT] sess.items:', JSON.stringify(sess.items?.map(i => i.title)));
+  try {
 
-    let itemIndex = -1;
-    if (text.startsWith('edit_item_')) {
-      itemIndex = parseInt(text.replace('edit_item_', ''));
-    } else if (/^\d+-\d+$/.test(text.trim())) {
-      const parts = text.trim().split('-');
-      itemIndex = parseInt(parts[1]);
-    } else if (/^\d+$/.test(text.trim())) {
-      itemIndex = parseInt(text.trim()) - 1;
-    } else {
-      console.log('✏️ [EDIT] Texto no matchea ningún patrón:', text);
-      // No reseteamos el modo edición inmediatamente si no entendemos
-      // Podría ser que el usuario esté preguntando algo o queriendo hacer otra cosa
-      // Pero para seguir el flujo actual, lo mantenemos igual pero con un mensaje más claro
-      await sendText(phone, 'No identifiqué qué ítem elegiste. Respondé con el *número* o seleccioná de la lista.');
-      return true;
-    }
+    // Stage 1: Seleccionando qué item editar
+    if (sess.editMode.stage === 'selecting_item') {
+      console.log('✏️ [EDIT] text recibido:', text);
+      console.log('✏️ [EDIT] sess.items:', JSON.stringify(sess.items?.map(i => i.title)));
 
-    console.log('✏️ [EDIT] itemIndex parseado:', itemIndex);
-    console.log('✏️ [EDIT] sess.items.length:', sess.items?.length);
-
-    const item = sess.items[itemIndex];
-    console.log('✏️ [EDIT] item encontrado:', item ? item.title : 'undefined');
-
-    if (!item) {
-      console.log('✏️ [EDIT] Item no encontrado en sess.items');
-      await sendText(phone, 'No encontré ese item. Intentá de nuevo.');
-      sess.editMode = null;
-      await setSession(phone, sess);
-      return true;
-    }
-
-    // Buscar TODOS los productos relacionados (mismo tipo base)
-    const idx = await buildProductIndex();
-    const product = idx.find(p => p.id === item.productId);
-
-    if (!product) {
-      await sendText(phone, 'No pude cargar las variantes de este producto.');
-      sess.editMode = null;
-      await setSession(phone, sess);
-      return true;
-    }
-
-    // Extraer palabra clave base del producto (ej: "arena", "cemento", "piedra") para buscar alternativas
-    const titleLower = product.title.toLowerCase();
-    const categories = [
-      'arena', 'cemento', 'piedra', 'cal', 'ladrillo', 'hierro', 'malla',
-      'vigueta', 'escombro', 'tosca', 'plasticor', 'hidrofugo', 'pegamento',
-      'viga', 'columna', 'estribo', 'alambre', 'clavo', 'tornillo', 'perfil', 'chapa'
-    ];
-
-    // Buscar qué categorías están presentes en el título
-    let baseKeywords = categories.filter(cat => titleLower.includes(cat));
-
-    if (baseKeywords.length === 0) {
-      // Fallback a primera palabra, pero quitando plurales simples y siendo tolerante
-      let firstWord = titleLower.split(' ')[0].replace(/s$/, ''); // quitar 's' final simple
-      if (firstWord.length > 3) {
-        baseKeywords = [firstWord];
+      let itemIndex = -1;
+      if (text.startsWith('edit_item_')) {
+        itemIndex = parseInt(text.replace('edit_item_', ''));
+      } else if (/^\d+-\d+$/.test(text.trim())) {
+        const parts = text.trim().split('-');
+        itemIndex = parseInt(parts[1]);
+      } else if (/^\d+$/.test(text.trim())) {
+        itemIndex = parseInt(text.trim()) - 1;
       } else {
-        baseKeywords = [titleLower.split(' ')[0]];
+        console.log('✏️ [EDIT] Texto no matchea ningún patrón:', text);
+        await sendText(phone, 'No identifiqué el item. Por favor, seleccioná uno de la lista.');
+        return true;
       }
+
+      console.log('✏️ [EDIT] itemIndex parseado:', itemIndex);
+      console.log('✏️ [EDIT] sess.items.length:', sess.items?.length);
+
+      const item = sess.items[itemIndex];
+      console.log('✏️ [EDIT] item encontrado:', item ? item.title : 'undefined');
+
+      if (!item) {
+        console.log('✏️ [EDIT] Item no encontrado en sess.items');
+        await sendText(phone, 'No encontré ese item. Intentá de nuevo.');
+        sess.editMode = null;
+        await setSession(phone, sess);
+        return true;
+      }
+
+      return await startEditForItem(phone, sess, itemIndex);
     }
 
-    // Buscar todos los productos que contengan ALGUNA de esas palabras clave
-    const relatedProducts = idx.filter(p => {
-      const pTitle = p.title.toLowerCase();
-      return baseKeywords.some(kw => pTitle.includes(kw)) && p.variants?.length > 0;
-    });
 
-    if (!relatedProducts.length) {
-      await sendText(phone, 'No encontré productos relacionados para editar.');
+    // Stage 2: Seleccionando variante/producto
+    if (sess.editMode.stage === 'selecting_variant') {
+      const itemIndex = sess.editMode.itemIndex;
+      const options = sess.editMode.options || [];
+      let optionIndex = -1;
+
+      if (text.startsWith('edit_variant_')) {
+        const parts = text.replace('edit_variant_', '').split('_');
+        optionIndex = parseInt(parts[1]);
+      } else if (/\b(cancel|cancelar|salir|confirm_no)\b/i.test(text)) {
+        await sendText(phone, 'Edición cancelada. Volviendo al presupuesto...');
+        sess.editMode = null;
+        await setSession(phone, sess);
+        await sendText(phone, renderSummary(sess.items, sess.notFound));
+        return true;
+      } else if (/^\d+-\d+$/.test(text.trim())) {
+        const parts = text.trim().split('-');
+        optionIndex = parseInt(parts[1]);
+      } else if (/^\d+$/.test(text.trim())) {
+        const val = parseInt(text.trim());
+        // Si el número es un índice válido de la lista
+        if (val >= 1 && val <= options.length) {
+          optionIndex = val - 1;
+        } else {
+          // Si no es un índice, pero es un número solo, podría ser INTENCIÓN DE CAMBIO DE CANTIDAD
+          console.log('✏️ [EDIT] El número no es un índice, probando como cantidad:', val);
+          const item = sess.items[itemIndex];
+          if (item && val > 0) {
+            const oldQty = item.qty;
+            item.qty = val;
+            // Recalcular montos (asumimos que amounts.lista es precio unitario * qty)
+            const unitPrice = item.amounts.lista / oldQty;
+            item.amounts.lista = unitPrice * item.qty;
+
+            await sendText(phone, `✅ Cantidad actualizada: *${item.qty}x ${item.title}*`);
+            sess.editMode = null;
+            await setSession(phone, sess);
+            // Mostrar resumen actualizado
+            await sendText(phone, renderSummary(sess.items, sess.notFound));
+            return true;
+          }
+        }
+      }
+
+      // Si no fue un índice ni un cambio de cantidad simple, último intento de parsear frase de cantidad
+      const qtyPhrase = text.match(/(?:quiero|son|cambia a|ponele)\s*(\d+)/i);
+      if (qtyPhrase && optionIndex === -1) {
+        const newQty = parseInt(qtyPhrase[1]);
+        const item = sess.items[itemIndex];
+        if (item && newQty > 0) {
+          const oldQty = item.qty;
+          item.qty = newQty;
+          const unitPrice = item.amounts.lista / oldQty;
+          item.amounts.lista = unitPrice * item.qty;
+
+          await sendText(phone, `✅ Cantidad actualizada: *${item.qty}x ${item.title}*`);
+          // Limpiar modo edición y refrescar total
+          sess.editMode = null;
+          await setSession(phone, sess);
+          await sendText(phone, renderSummary(sess.items, sess.notFound));
+          return true;
+        }
+      }
+
+      if (optionIndex === -1) {
+        await sendText(phone, 'No identifiqué la opción. Elegí un producto de la lista o escribí la nueva cantidad (ej: "10").');
+        return true;
+      }
+
+      const selectedOption = options[optionIndex];
+      if (!selectedOption) {
+        await sendText(phone, 'No encontré esa opción. Intentá de nuevo.');
+        sess.editMode = null;
+        await setSession(phone, sess);
+        return true;
+      }
+
+      const item = sess.items[itemIndex];
+      const idx = await buildProductIndex();
+      const newProduct = idx.find(p => p.id === selectedOption.productId);
+      const newVariant = newProduct?.variants?.find(v => v.id === selectedOption.variantId);
+
+      if (!newVariant) {
+        await sendText(phone, 'No encontré ese producto. Intentá de nuevo.');
+        sess.editMode = null;
+        await setSession(phone, sess);
+        return true;
+      }
+
+      // Actualizar item con nuevo producto/variante
+      const totals = computeLineTotals(newVariant, item.qty);
+
+      sess.items[itemIndex] = {
+        ...item,
+        productId: newProduct.id,
+        variantId: newVariant.id,
+        title: selectedOption.title,
+        amounts: totals
+      };
       sess.editMode = null;
       await setSession(phone, sess);
+
+      await sendText(phone, `✅ Actualizado a *${selectedOption.title}*`);
+      await sendText(phone, renderSummary(sess.items, sess.notFound));
+
+      const buttons = [];
+      if (sess.items.length > 0) {
+        buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
+        buttons.push({ id: 'edit', title: '✏️ Editar' });
+      }
+      buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
+      await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
       return true;
     }
-
-    // Crear lista de todas las opciones (productos + variantes)
-    const allOptions = [];
-    relatedProducts.forEach((prod, prodIdx) => {
-      prod.variants.forEach((v, varIdx) => {
-        allOptions.push({
-          productId: prod.id,
-          variantId: v.id,
-          title: humanizeName(`${prod.title} ${v.title !== 'Default Title' ? v.title : ''}`.trim()),
-          price: v.price || 0
-        });
-      });
-    });
-
-    // Limitar a 10 opciones para la lista interactiva de WATI
-    const limitedOptions = allOptions.slice(0, 10);
-
-    const variantRows = limitedOptions.map((opt, optIdx) => ({
-      id: `0-${optIdx}`,
-      title: opt.title.substring(0, 22),
-      description: currency(opt.price)
-    }));
-
-    sess.editMode = { stage: 'selecting_variant', itemIndex, options: limitedOptions };
-    await setSession(phone, sess);
-
-    await sendInteractiveList(
-      phone,
-      `Opciones de ${baseKeywords[0]?.toUpperCase() || 'PRODUCTO'}:`,
-      'Ver opciones',
-      [{ title: 'Productos disponibles', rows: variantRows }]
-    );
-    return true;
-  }
-
-  // Stage 2: Seleccionando variante/producto
-  if (sess.editMode.stage === 'selecting_variant') {
-    const itemIndex = sess.editMode.itemIndex;
-    const options = sess.editMode.options || [];
-    let optionIndex = -1;
-
-    if (text.startsWith('edit_variant_')) {
-      const parts = text.replace('edit_variant_', '').split('_');
-      optionIndex = parseInt(parts[1]);
-    } else if (/^\d+-\d+$/.test(text.trim())) {
-      const parts = text.trim().split('-');
-      optionIndex = parseInt(parts[1]);
-    } else if (/^\d+$/.test(text.trim())) {
-      optionIndex = parseInt(text.trim()) - 1;
-    } else {
-      await sendText(phone, 'No identifiqué la opción. Respondé con el número de la lista.');
-      return true;
-    }
-
-    const selectedOption = options[optionIndex];
-    if (!selectedOption) {
-      await sendText(phone, 'No encontré esa opción. Intentá de nuevo.');
-      sess.editMode = null;
-      await setSession(phone, sess);
-      return true;
-    }
-
-    const item = sess.items[itemIndex];
-    const idx = await buildProductIndex();
-    const newProduct = idx.find(p => p.id === selectedOption.productId);
-    const newVariant = newProduct?.variants?.find(v => v.id === selectedOption.variantId);
-
-    if (!newVariant) {
-      await sendText(phone, 'No encontré ese producto. Intentá de nuevo.');
-      sess.editMode = null;
-      await setSession(phone, sess);
-      return true;
-    }
-
-    // Actualizar item con nuevo producto/variante
-    const totals = computeLineTotals(newVariant, item.qty);
-
-    sess.items[itemIndex] = {
-      ...item,
-      productId: newProduct.id,
-      variantId: newVariant.id,
-      title: selectedOption.title,
-      amounts: totals
-    };
+    return false;
+  } catch (err) {
+    console.error('❌ [EDIT] Error fatal en maybeResolveEditMode:', err);
+    await sendText(phone, '⚠️ Ocurrió un error en el modo edición. Volviendo al presupuesto...');
     sess.editMode = null;
     await setSession(phone, sess);
-
-    await sendText(phone, `✅ Actualizado a *${selectedOption.title}*`);
-    await sendText(phone, renderSummary(sess.items, sess.notFound));
-
-    const buttons = [];
-    if (sess.items.length > 0) {
-      buttons.push({ id: 'finalize', title: '✅ Finalizar (PDF)' });
-      buttons.push({ id: 'edit', title: '✏️ Editar' });
-    }
-    buttons.push({ id: 'confirm_no', title: '❌ Cancelar' });
-    await sendInteractiveButtons(phone, '¿Qué querés hacer?', buttons);
-    return true;
+    return false;
   }
-
-  return false;
 }
 
 async function maybeResolvePendingSelect({ phone, text, sess }) {
@@ -333,18 +390,26 @@ async function maybeResolvePendingSelect({ phone, text, sess }) {
   if (sess?.editMode) return false;
   if (!sess?.pendingSelect) return false;
   const { purpose, options, qty } = sess.pendingSelect;
-  const n = Number(String(text).trim());
   let chosen = null;
+  const n = Number(String(text).trim());
 
-  if (Number.isFinite(n) && n >= 1 && n <= options.length) {
+  if (String(text).startsWith('product_')) {
+    chosen = options.find(o => o.id === text);
+  } else if (/^\d+-\d+$/.test(String(text).trim())) {
+    const parts = String(text).trim().split('-');
+    const itemIdx = parseInt(parts[1]);
+    if (itemIdx >= 0 && itemIdx < options.length) {
+      chosen = options[itemIdx];
+    }
+  } else if (Number.isFinite(n) && n >= 1 && n <= options.length) {
     chosen = options[n - 1];
   } else {
     const t = String(text).toLowerCase();
-    chosen = options.find(o => o.label.toLowerCase().includes(t));
+    chosen = options.find(o => o.label?.toLowerCase().includes(t) || o.title?.toLowerCase().includes(t) || o.fullTitle?.toLowerCase().includes(t));
   }
 
   if (!chosen) {
-    await sendText(phone, `No reconocí la opción. Respondé con un número entre 1 y ${options.length}.`);
+    await sendText(phone, 'No reconocí la opción. Por favor, elegí de la lista.');
     return true;
   }
 
@@ -872,6 +937,11 @@ export async function handleBudgetMessage(req, body, phone) {
       return;
     }
 
+    // Atajo: si hay un solo producto, ir directo a editarlo
+    if (sess.items.length === 1) {
+      return await startEditForItem(phone, sess, 0);
+    }
+
     // Mostrar lista de items para que elija cuál editar
     const itemRows = sess.items.map((item, idx) => ({
       id: `edit_item_${idx}`,
@@ -884,7 +954,7 @@ export async function handleBudgetMessage(req, body, phone) {
 
     await sendInteractiveList(
       phone,
-      '¿Qué producto querés modificar?',
+      `Tenés ${sess.items.length} productos. ¿Cuál querés modificar?`,
       'Ver productos',
       [{
         title: 'Items del presupuesto',
@@ -1205,7 +1275,7 @@ export async function handleBudgetMessage(req, body, phone) {
     // Tiene items - mostrar resumen y opciones
     await sendText(
       phone,
-      `No te entendí 🤔\n\nPodés seguir agregando productos (texto, foto 📷 o audio 🎤) o elegir una opción.\n\n${renderSummary(sess.items, sess.notFound)}`
+      `No te entendí 🤔\n\nPodés seguir agregando productos o elegir una opción.`
     );
     await sendInteractiveButtons(phone, '¿Qué querés hacer?', [
       { id: 'finalize', title: '✅ Finalizar (PDF)' },

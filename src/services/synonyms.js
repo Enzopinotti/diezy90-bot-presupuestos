@@ -53,6 +53,10 @@ const TOKEN_MAP = new Map([
   ['ceramica', 'ceramico'],
   ['ceramico', 'ceramico'],
   ['porcelanato', 'ceramico'],
+
+  // Ladrillos
+  ['hueco', 'ladrillo'],
+  ['pallet', 'pallet'],
 ]);
 
 const K_DYN = 'd90:synonyms:dynamic';

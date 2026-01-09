@@ -56,9 +56,9 @@ export function parseIntent(rawText) {
   if (HELP_RE.test(t)) return { type: 'HELP' };
   if (VIEW_RE.test(t)) return { type: 'VIEW' };
   if (TABLE_VIEW_RE.test(t)) return { type: 'VIEW' }; // "tabla" también muestra el resumen (que ya incluye tabla)
-  if (CONFIRM_RE.test(t)) return { type: 'CONFIRM' };
-  if (/\b(editar|edit|modificar lista|cambiar lista)\b/i.test(t)) return { type: 'EDIT' };
-  if (CANCEL_RE.test(t)) return { type: 'CANCEL' };
+  if (t === 'finalize' || CONFIRM_RE.test(t)) return { type: 'CONFIRM' };
+  if (t === 'edit' || /\b(editar|edit|modificar lista|cambiar lista)\b/i.test(t)) return { type: 'EDIT' };
+  if (t === 'confirm_no' || CANCEL_RE.test(t)) return { type: 'CANCEL' };
   if (EXIT_RE.test(t)) return { type: 'EXIT_HINT' };
   if (HUMAN_RE.test(t)) return { type: 'HUMAN' };
 
