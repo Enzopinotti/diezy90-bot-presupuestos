@@ -94,11 +94,21 @@ export function parseIntent(rawText) {
     /\b(sin|sacá|quitá|borrá|eliminá)\b/.test(t);
   const isChange = /\b(cambi|modific|dejalo|dejarlo|llevalo|subilo|bajalo|ajustalo|ajustar|hacelo|ponelo\s+en|dejá|cambiale)\w*\b/.test(t);
 
-  const qty = parseQtyFromText(t);
-  const terms = stripFillerForTerms(t);
+  let qty = parseQtyFromText(t);
+  const all = /\b(todo|todos|todas|total|completo)\b/i.test(t);
+
+  // Limpiar cantidad y relleno para quedarnos solo con el producto
+  let termsText = t;
+  if (qty) {
+    // Intentar sacar el número (ej: "3", "dos") del texto de búsqueda
+    // Usamos normalizeSpokenNumbers para que "dos" sea "2" y r.replace("2") funcione mejor
+    const tNorm = normalizeSpokenNumbers(t);
+    termsText = tNorm.replace(new RegExp(`\\b${qty}\\b`, 'g'), ' ');
+  }
+  const terms = stripFillerForTerms(termsText);
 
   if (isAdd) return { type: 'ADD', qty, terms };
-  if (isRemove) return { type: 'REMOVE', qty, terms };
+  if (isRemove) return { type: 'REMOVE', qty: all ? null : qty, terms, all };
   if (isChange) return { type: 'CHANGE', qty, terms };
 
   // —— Consultas de precio / disponibilidad —— //

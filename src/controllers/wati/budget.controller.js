@@ -631,8 +631,21 @@ async function findItemInBudget(terms, items, productIndex) {
     const titleNums = itemTitle.match(/\d+/g) || [];
     const numMatch = searchNums.every(n => titleNums.includes(n));
 
+    // Lo aceptamos si:
+    // A) Match robusto de palabras + Números
     if (matches.length >= Math.min(2, searchWords.length) && numMatch) {
       return i;
+    }
+
+    // B) Si es solo una palabra genérica (ej: "hierro") y es la ÚNICA que existe en el presupuesto
+    const GENERIC_SET = new Set(['hierro', 'varilla', 'ladrillo', 'arena', 'cemento', 'piedra', 'cal', 'malla', 'vigueta']);
+    const genericWord = searchWords.find(w => GENERIC_SET.has(w));
+    if (genericWord && !searchNums.length) {
+      // Contar cuántos items en el presupuesto tienen esta palabra genérica
+      const genericMatches = items.filter(it => normalizeTerms(it.title).toLowerCase().includes(genericWord));
+      if (genericMatches.length === 1 && itemTitle.includes(genericWord)) {
+        return i;
+      }
     }
   }
 
@@ -669,6 +682,20 @@ async function handleNaturalEdit({ phone, intent, sess, productIndex }) {
     }
 
     const item = sess.items[itemIndex];
+
+    // Si especificó "todo" o no hay cantidad y solo hay uno de este tipo, eliminar completo
+    if (intent.all) {
+      sess.items.splice(itemIndex, 1);
+      await setSession(phone, sess);
+      await sendText(phone, `✅ Eliminé todo el ítem *${item.title}* del presupuesto`);
+
+      if (sess.items.length === 0) {
+        await sendText(phone, 'Tu presupuesto quedó vacío.');
+      } else {
+        await sendText(phone, renderSummary(sess.items, sess.notFound));
+      }
+      return true;
+    }
 
     // Si especificó cantidad, reducir
     if (qty && qty < item.qty) {
@@ -1417,6 +1444,8 @@ export async function handleBudgetMessage(req, body, phone) {
         }
       }
 
+      console.log(`🔍 [BUDGET] Línea de lista: "${clean}" | Cantidad detectada: ${lineQty}`);
+
       // Limpieza final de preposiciones (de, del) para todos los casos
       clean = clean.replace(/^(de|del)\s+/i, '');
 
@@ -1428,6 +1457,16 @@ export async function handleBudgetMessage(req, body, phone) {
 
       console.log(`🔍 [BUDGET] Procesando línea: "${clean}" con cantidad: ${lineQty}`);
       const r = await smartMatch(clean, idx, lineQty);
+
+      if (r.accepted.length) {
+        console.log(`✅ [BUDGET] Aceptados por smartMatch:`, r.accepted.map(a => a.product.title).join(', '));
+      }
+      if (r.clarify.length) {
+        console.log(`❓ [BUDGET] Clarificaciones por smartMatch:`, r.clarify.length);
+      }
+      if (r.notFound.length) {
+        console.log(`❌ [BUDGET] No encontrados por smartMatch:`, r.notFound.join(', '));
+      }
 
       const nf = r.notFound.filter(s => !RESERVED_TOKENS.has(sanitizeText(s).toLowerCase()));
       notFound.push(...nf);
@@ -1442,11 +1481,23 @@ export async function handleBudgetMessage(req, body, phone) {
         const baseTitle = `${ac.product.title} ${ac.variant.title !== 'Default Title' ? ac.variant.title : ''}`.trim();
         const title = humanizeName(baseTitle);
 
+        // Detectar si el precio es por M2 y extraer el factor
+        const m2Match = ac.product.title.match(/PRECIO X\s*(\d+(?:[.,]\d+)?)\s*M2/i);
+        let unit = 'un';
+        let factor = 1;
+
+        if (m2Match) {
+          unit = 'm2';
+          factor = parseFloat(m2Match[1].replace(',', '.'));
+        }
+
         sess.items.push({
           productId: ac.product.id,
           variantId: ac.variant.id,
           title,
           qty: ac.qty,
+          unit,
+          boxSize: factor, // Guardamos cuánto cubre una caja
           amounts: { lista: totals.lista, transferencia: totals.transferencia, efectivo: totals.efectivo }
         });
         trackLastAction(sess, { index: sess.items.length - 1, productId: ac.product.id, variantId: ac.variant.id });

@@ -140,7 +140,7 @@ export function stripFillerForTerms(text = '') {
   const t = _normBase(text).toLowerCase();
   const out = t
     // verbos comunes de interacción (sincronizado con sanitizeText)
-    .replace(/\b(agreg[ae]me?|sum[aae]me?|pone?me?|presupuest[aae]me?|pas[aae]me?|quiero|necesito|sac[ae]me?|quit[ae]me?|borr[ae]me?|elimin[ae]me?|trae?me?|metele|tirale|dale)\b/g, ' ')
+    .replace(/\b(agreg[ae]me?|sum[aae]me?|pone?me?|presupuest[aae]me?|pas[aae]me?|quiero|necesito|sac[ae]me?|quit[ae]me?|borr[ae]me?|elimin[ae]me?|trae?me?|metele|tirale|dale|sacara?|quitara?|borrara?|eliminara?|agregara?|sumara?|sacada|borrada|quitada|eliminada)\b/g, ' ')
     // pedidos de precio y similares
     .replace(/\b(precio|precios|costo|cuanto\s*sale|hay|tenes|ten[eé]s|disponible|stock|valor)\b/g, ' ')
     // conectores comunes

@@ -100,15 +100,23 @@ export function renderSummary(items = [], notFound = []) {
     list.forEach((i, idx) => {
       // Formato compacto para móvil: "2  NombreProd... $12.000"
       // QTY (2) | TITLE (19) | PRICE (10)
-      const title = String(i?.title ?? '').trim().substring(0, 19);
-      const qty = (Number(i?.qty ?? 0) || 0).toString().padEnd(2);
+      let title = String(i?.title ?? '').trim().substring(0, 19);
+      const qty = (Number(i?.qty ?? 0) || 0);
+      const qtyPad = qty.toString().padEnd(2);
+
+      // Si es m2, mostrar una línea secundaria o ajustar el nombre
+      if (i.unit === 'm2' && i.boxSize > 1) {
+        const totalM2 = (qty * i.boxSize).toFixed(2);
+        // Intentar meter el m2 en el nombre si cabe, o solo mostrar
+        title = `${title}`.substring(0, 13) + ` (${totalM2}m2)`;
+      }
 
       // Precio compacto sin signo $ para ahorrar espacio
       const rawPrice = Math.round(i?.amounts?.lista || 0);
       const formattedPrice = rawPrice.toLocaleString('es-AR');
       const sub = `$${formattedPrice}`;
 
-      const line = `${qty} ${title.padEnd(19)} ${sub.padStart(10)}`;
+      const line = `${qtyPad} ${title.padEnd(19)} ${sub.padStart(10)}`;
       out.push(line);
     });
 
@@ -182,6 +190,9 @@ export function mergeSameItems(items) {
       const newQty = acc.qty + it.qty;
       acc.qty = newQty;
       acc.amounts = computeLineTotals({ price: unit }, newQty);
+      // Preservar metadatos de unidad/m2 si existen
+      if (it.unit) acc.unit = it.unit;
+      if (it.boxSize) acc.boxSize = it.boxSize;
       map.set(key, acc);
     }
   }

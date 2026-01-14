@@ -81,13 +81,21 @@ export function humanizeName(name = '') {
   out = out.replace(/\bbolson\b/gi, 'bolsón');
 
   // Limpieza de PALLETS y variaciones
-  if (out.includes('PALLET')) {
-    out = out.replace(/X\s*\d+\s*X\s*\d+/gi, ''); // Quitar dimensiones extras (18x18x33 -> 18)
-    out = out.replace(/PALLET LADRILLO HUECO/gi, 'PALLET LADRILLO');
+  if (out.includes('PALLET') || out.includes('LADRILLO')) {
+    out = out.replace(/X\s*\d+\s*X\s*\d+/gi, ''); // Quitar dimensiones extras (12x18x33 -> 12)
+    out = out.replace(/\b(9T|9TAB|X UNIDAD|X UN)\b/gi, ''); // Quitar códigos redundantes
+    out = out.replace(/PALLET LADRILLO HUECO/gi, 'Pallet Ladrillo');
     out = out.replace(/PALLET LADRILLO/gi, 'Pallet Ladrillo');
+    out = out.replace(/LADRILLO HUECO/gi, 'Ladrillo');
   }
 
-  // Quitar palabras redundantes de unidades
+  // Limpieza de CERAMICOS y ARIDOS
+  out = out.replace(/\( ?PRECIO X.*?\)/gi, ''); // Quitar "( PRECIO X 2.33 M2)"
+  out = out.replace(/ARENA A GRANEL/gi, 'Arena a Granel');
+  out = out.replace(/ARENA BOLSITA/gi, 'Arena Bolsita');
+  out = out.replace(/ARENA BOLSON/gi, 'Arena Bolsón');
+
+  // Quitar palabras redundantes de unidades o códigos
   out = out.replace(/\b(un|unidad(es)?)\b/gi, '');
 
   return out.replace(/\s+/g, ' ').trim();
@@ -445,13 +453,20 @@ function expandShorthands(text = '') {
 
   // "del 12" / "del 8" sin contexto previo → añadir ladrillo si parece hueco, o hierro si es chico
   // (pero solo si NO tiene ya "ladrillo", "varilla", "hierro", etc.)
-  if (/\bdel\s+(\d+)\b/i.test(t) && !/\b(ladrillos?|huecos?|varillas?|hierros?|mallas?)\b/i.test(t)) {
+  if (/\bdel\s+(\d+)\b/i.test(t) && !/\b(ladrillos?|huecos?|varillas?|hierros?|mallas?|cer[aá]micos?)\b/i.test(t)) {
     const num = parseInt(t.match(/\bdel\s+(\d+)\b/i)[1]);
     if (num <= 10) {
       t = t.replace(/\bdel\s+(\d+)\b/gi, 'hierro $1');
+    } else if (num === 36 || num === 43 || num === 50) {
+      t = t.replace(/\bdel\s+(\d+)\b/gi, 'ceramico $1');
     } else {
       t = t.replace(/\bdel\s+(\d+)\b/gi, 'ladrillo $1');
     }
+  }
+
+  // Shorthands para Aridos
+  if (t.toLowerCase().includes('bolsita') && !t.toLowerCase().includes('arena')) {
+    t = 'arena ' + t;
   }
 
   // Limpiar "de 25kg", "de 25 kg", "x 25kg" redundante (el peso ya está implícito en el producto)

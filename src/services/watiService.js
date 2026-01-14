@@ -13,7 +13,9 @@ const api = axios.create({
   timeout: 15000
 });
 
-function logOk(tag, to, extra) { logger.debug({ tag, to, ...extra }, 'WATI OK'); }
+function logOk(tag, to, extra) {
+  logger.info({ tag, phone: to, ...extra }, `OUTBOUND [${tag}]`);
+}
 function logErr(tag, to, err) {
   logger.error({
     tag, to,
@@ -37,7 +39,7 @@ export async function sendText(to, message) {
         form.toString(),
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       );
-      logOk('sendText', dest, { status, data });
+      logOk('sendText', dest, { text: part, status, data });
       last = { ok: data?.result !== false, status, data };
     } catch (e) {
       logErr('sendText', dest, e);
@@ -137,7 +139,7 @@ export async function sendInteractiveButtons(to, bodyText, buttons) {
       `/sendInteractiveButtonsMessage?whatsappNumber=${encodeURIComponent(dest)}`,
       payload
     );
-    logOk('sendInteractiveButtons', dest, { status, data });
+    logOk('sendInteractiveButtons', dest, { bodyText, buttons, status, data });
     return { ok: data?.result !== false, status, data };
   } catch (e) {
     logErr('sendInteractiveButtons', dest, e);
@@ -157,14 +159,14 @@ export async function sendInteractiveList(to, bodyText, buttonLabel, sections) {
   try {
     const payload = {
       body: bodyText,
-      buttonText: buttonLabel,  
+      buttonText: buttonLabel,
       sections: sections
     };
     const { status, data } = await api.post(
       `/sendInteractiveListMessage?whatsappNumber=${encodeURIComponent(dest)}`,
       payload
     );
-    logOk('sendInteractiveList', dest, { status, data });
+    logOk('sendInteractiveList', dest, { bodyText, sections, status, data });
 
     // Si WATI devuelve ok:false, tratarlo como error
     if (data?.ok === false) {
