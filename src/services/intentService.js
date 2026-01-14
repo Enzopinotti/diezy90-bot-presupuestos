@@ -1,6 +1,6 @@
 // src/services/intentService.js
 // ----------------------------------------------------
-import { parseQtyFromText, stripFillerForTerms, isLikelyBudgetList } from './textService.js';
+import { parseQtyFromText, stripFillerForTerms, isLikelyBudgetList, normalizeSpokenNumbers } from './textService.js';
 import { matchDynamicIntent } from './intentDynamicService.js';
 
 // Respuestas cortas
