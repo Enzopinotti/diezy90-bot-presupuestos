@@ -84,16 +84,28 @@ export function humanizeName(name = '') {
   if (out.includes('PALLET') || out.includes('LADRILLO')) {
     out = out.replace(/X\s*\d+\s*X\s*\d+/gi, ''); // Quitar dimensiones extras (12x18x33 -> 12)
     out = out.replace(/\b(9T|9TAB|X UNIDAD|X UN)\b/gi, ''); // Quitar códigos redundantes
-    out = out.replace(/PALLET LADRILLO HUECO/gi, 'Pallet Ladrillo');
-    out = out.replace(/PALLET LADRILLO/gi, 'Pallet Ladrillo');
-    out = out.replace(/LADRILLO HUECO/gi, 'Ladrillo');
+    out = out.replace(/PALLET LADRILLO HUECO/gi, 'Pallet Ladrillo hueco');
+    out = out.replace(/PALLET LADRILLO/gi, 'Pallet Ladrillo hueco');
+    out = out.replace(/LADRILLO HUECO/gi, 'Ladrillo hueco');
   }
+
+  // Marcas de Cemento (según pedido del usuario)
+  out = out.replace(/CEMENTO CPC40 N X 25 KG/gi, 'Cemento Loma Negra 25kg');
+  out = out.replace(/CEMENTO CPC40 H F X 25 KG/gi, 'Cemento Holcim 25kg');
+  out = out.replace(/CEMENTO CPC40 HF X 25 KG/gi, 'Cemento Holcim 25kg');
+  out = out.replace(/CEMENTO CPC40 N/gi, 'Cemento Loma Negra');
+  out = out.replace(/CEMENTO CPC40 H F/gi, 'Cemento Holcim');
 
   // Limpieza de CERAMICOS y ARIDOS
   out = out.replace(/\( ?PRECIO X.*?\)/gi, ''); // Quitar "( PRECIO X 2.33 M2)"
   out = out.replace(/ARENA A GRANEL/gi, 'Arena a Granel');
   out = out.replace(/ARENA BOLSITA/gi, 'Arena Bolsita');
   out = out.replace(/ARENA BOLSON/gi, 'Arena Bolsón');
+
+  // Acero / Hierros
+  out = out.replace(/HIERRO DE (\d+)MM/gi, 'Hierro $1mm');
+  out = out.replace(/HIERRO DE (\d+(?:[.,]\d+)?)MM/gi, 'Hierro $1mm');
+  out = out.replace(/MALLA (?:SIMA )?(\d+)X(\d+) (\d+(?:[.,]\d+)?)/gi, 'Malla $1x$2 $3');
 
   // Quitar palabras redundantes de unidades o códigos
   out = out.replace(/\b(un|unidad(es)?)\b/gi, '');
@@ -469,10 +481,16 @@ function expandShorthands(text = '') {
     t = 'arena ' + t;
   }
 
-  // Limpiar "de 25kg", "de 25 kg", "x 25kg" redundante (el peso ya está implícito en el producto)
-  t = t.replace(/\b(de|x)\s*\d+\s*kg?\b/gi, '');
+  // Mapeo de marcas de Cemento
+  if (t.toLowerCase().includes('loma negra')) {
+    t = t.replace(/loma negra/gi, 'cpc40 n');
+  }
+  if (t.toLowerCase().includes('holcim')) {
+    t = t.replace(/holcim/gi, 'cpc40 h f');
+  }
 
-  // Limpiar "de 25 kilos"
+  // Limpiar "de 25kg", "de 25 kg", "x 25kg" redundante
+  t = t.replace(/\b(de|x)\s*\d+\s*kg?\b/gi, '');
   t = t.replace(/\bde\s*\d+\s*kilos?\b/gi, '');
 
   return t.replace(/\s+/g, ' ').trim();

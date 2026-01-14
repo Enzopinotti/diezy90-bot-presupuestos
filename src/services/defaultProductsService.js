@@ -28,7 +28,9 @@ export function getDefaultProduct(term) {
         'medio',
         'media',
         '3m3',
-        '6m3'
+        '6m3',
+        'loma negra',
+        'holcim'
     ];
 
     if (SPECIFIC_PRODUCTS.some(sp => normalized.includes(sp))) {
