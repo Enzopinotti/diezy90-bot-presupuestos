@@ -87,12 +87,12 @@ export function parseIntent(rawText) {
   // Quitar último sin especificar
   if (REMOVE_LAST_RE.test(text)) return { type: 'REMOVE_LAST' };
 
-  // —— Verbos naturales —— //
-  const isAdd = /\b(agreg|sum|quiero|necesit|pone(me)?|ponelo|trae(me)?|manda(me)?|presupuestame|pasame|sumame|sumar)\w*\b/.test(t);
+  // —— Verbos naturales (expandido para argentinismos y errores) —— //
+  const isAdd = /\b(agreg|sum|quiero|necesit|pone(me)?|ponelo|trae(me)?|manda(me)?|presupuestame|pasame|sumame|sumar|metele|tirale|dale|agregá|poné|sumá)\w*\b/.test(t);
   const isRemove =
-    /\b(sac|quit|borr|elimin)\w*\b/.test(t) ||
-    /\bsin\b/.test(t);
-  const isChange = /\b(cambi|modific|dejalo|dejarlo|llevalo|subilo|bajalo|ajustalo|ajustar)\w*\b/.test(t);
+    /\b(sac|quit|borr|elimin|levant|sak|kit)\w*\b/.test(t) ||
+    /\b(sin|sacá|quitá|borrá|eliminá)\b/.test(t);
+  const isChange = /\b(cambi|modific|dejalo|dejarlo|llevalo|subilo|bajalo|ajustalo|ajustar|hacelo|ponelo\s+en|dejá|cambiale)\w*\b/.test(t);
 
   const qty = parseQtyFromText(t);
   const terms = stripFillerForTerms(t);

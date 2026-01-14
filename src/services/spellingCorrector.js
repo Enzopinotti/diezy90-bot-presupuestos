@@ -61,6 +61,7 @@ const CORRECTIONS = {
     'hueco': 'hueco',
     'ueco': 'hueco',
     'weco': 'hueco',
+    'huevo': 'hueco',
 
     // Unidades y medidas
     'metro': 'metro',
@@ -69,7 +70,38 @@ const CORRECTIONS = {
     'kl': 'kilo',
     'unidad': 'unidad',
     'unidda': 'unidad',
-    'unida': 'unidad'
+    'unida': 'unidad',
+
+    // Verbos de edición (argentinismos y errores)
+    'sakame': 'sacame',
+    'sakalo': 'sacalo',
+    'saká': 'sacá',
+    'kitame': 'quitame',
+    'kitalo': 'quitalo',
+    'kitá': 'quitá',
+    'borralo': 'borralo',
+    'borrá': 'borrá',
+    'agregame': 'agregame',
+    'agregá': 'agregá',
+    'poneme': 'poneme',
+    'poné': 'poné',
+    'metele': 'metele',
+    'tirale': 'tirale',
+    'cambialo': 'cambialo',
+    'cambiale': 'cambiale',
+    'dejalo': 'dejalo',
+    'dejá': 'dejá',
+
+    // Variantes argentinas de materiales
+    'arenita': 'arena',
+    'arenilla': 'arena',
+    'cementito': 'cemento',
+    'ladriyos': 'ladrillos',
+    'ladriyo': 'ladrillo',
+    'varilla': 'varilla',
+    'variya': 'varilla',
+    'fierro': 'hierro',
+    'fierrito': 'hierro'
 };
 
 /**

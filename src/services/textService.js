@@ -56,7 +56,7 @@ export function sanitizeText(s = '') {
   const t = _normBase(s).toLowerCase();
 
   // Palabras de relleno conversacional a eliminar
-  const FILLERS = /\b(quisiera|necesito|necesitaria|quiero|dame|mandame|traeme|hola|buenas|tardes|dias|noches|por|favor|gracias|muchas|mucha|mucho|muchisimas|me|das|tenes|hay|disponible|stock|precio|cuanto|sale|cuesta|valor|ordenar|pedir|enviar|mandar|solicitar|comprar|vendeme|pasame)\b/gi;
+  const FILLERS = /\b(quisiera|necesito|necesitaria|quiero|dame|mandame|traeme|hola|buenas|tardes|dias|noches|por|favor|gracias|muchas|mucha|mucho|muchisimas|me|das|tenes|hay|disponible|stock|precio|cuanto|sale|cuesta|valor|ordenar|pedir|enviar|mandar|solicitar|comprar|vendeme|pasame|agrega|agregame|suma|sumame|saca|sacame|quita|quitame|borra|borrame|elimina|eliminame|pone|poneme|metele|tirale|dale|trae|presupuestame|presupuesta)\b/gi;
 
   return t
     .replace(FILLERS, ' ')
@@ -112,25 +112,39 @@ export function splitLinesSmart(text) {
   return finalResult;
 }
 
-/** Extrae una cantidad "global" del texto (para intents rápidos). Toma la última coincidencia. */
+/** Extrae una cantidad "global" del texto (para intents rápidos). */
 export function parseQtyFromText(text = '') {
-  const t = _normBase(text).toLowerCase();
+  let t = _normBase(text).toLowerCase();
+
+  // 1. Normalizar números hablados (dos -> 2)
+  t = normalizeSpokenNumbers(t);
+
+  // 2. Patrón "x 3", "por 3", "a 3" (toma el último)
   const matchs = [...t.matchAll(/\b(?:x|por|a)\s*(\d+(?:[.,]\d+)?)\b/g)];
-  if (!matchs.length) return null;
-  const last = matchs[matchs.length - 1][1];
-  return Number(String(last).replace(',', '.'));
+  if (matchs.length) {
+    const last = matchs[matchs.length - 1][1];
+    return Number(String(last).replace(',', '.'));
+  }
+
+  // 3. Patrón numérico al inicio o después de verbo: "agrega 3", "sacame dos", "5 arenas"
+  const startMatch = t.match(/(?:^|\s)(\d+(?:[.,]\d+)?)\b/);
+  if (startMatch) {
+    return Number(String(startMatch[1]).replace(',', '.'));
+  }
+
+  return null;
 }
 
 /** Saca "relleno" para quedarse con términos de búsqueda sueltos */
 export function stripFillerForTerms(text = '') {
   const t = _normBase(text).toLowerCase();
   const out = t
-    // verbos comunes de interacción
-    .replace(/\b(agrega?me?|sum(a|ar)|pone?me?|presupuest(a|ame)|pas(a|ame)|quiero|necesito)\b/g, ' ')
+    // verbos comunes de interacción (sincronizado con sanitizeText)
+    .replace(/\b(agreg[ae]me?|sum[aae]me?|pone?me?|presupuest[aae]me?|pas[aae]me?|quiero|necesito|sac[ae]me?|quit[ae]me?|borr[ae]me?|elimin[ae]me?|trae?me?|metele|tirale|dale)\b/g, ' ')
     // pedidos de precio y similares
-    .replace(/\b(precio|precios|costo|cuanto\s*sale|hay|tenes|ten[eé]s|disponible)\b/g, ' ')
+    .replace(/\b(precio|precios|costo|cuanto\s*sale|hay|tenes|ten[eé]s|disponible|stock|valor)\b/g, ' ')
     // conectores comunes
-    .replace(/\b(por\s*favor|pf|gracias|hola|buenas|buen\s*d[ií]a|men[uú]|menu|inicio)\b/g, ' ')
+    .replace(/\b(por\s*favor|pf|gracias|hola|buenas|buen\s*d[ií]a|men[uú]|menu|inicio|de|del|el|la|los|las|un|una)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   return out || null;

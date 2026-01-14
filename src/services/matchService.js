@@ -29,8 +29,11 @@ function baseNorm(s = '') {
  * Tokenizar + singularizar liviano
  * ------------------------------------------- */
 function tokenize(str = '') {
-  const t = baseNorm(str);
+  let t = baseNorm(str);
   if (!t) return [];
+  // Separar números de unidades (ej: "8mm" -> "8 mm", "25kg" -> "25 kg")
+  t = t.replace(/(\d+)([a-z]+)/gi, '$1 $2');
+
   return t.split(/\s+/).map(w => {
     if (w.length > 4 && w.endsWith('s')) return w.slice(0, -1);
     return w;
@@ -295,7 +298,7 @@ function isGenericTerm(text) {
   // Términos genéricos comunes en construcción
   const GENERIC_TERMS = [
     'arena', 'cemento', 'piedra', 'cal', 'ladrillo',
-    'hierro', 'malla', 'ceramico', 'hidrofugo',
+    'varilla', 'hierro', 'malla', 'ceramico', 'hidrofugo',
     'escombro', 'tosca', 'plasticor',
     'vigueta', 'alambre', 'clavo', 'tornillo',
     'aislante', 'tapa', 'pallet'
@@ -338,9 +341,6 @@ function passesStrongTokenFilter(strongTokens = [], titleTokens = []) {
   return true;
 }
 
-/* ----------------------------------------------
- * Buscar productos por categoría genérica
- * ------------------------------------------- */
 function findProductsByGenericTerm(text, productIndex = []) {
   const normalized = baseNorm(text);
   const tokens = tokenize(normalized);
@@ -348,7 +348,7 @@ function findProductsByGenericTerm(text, productIndex = []) {
   // Extraer el término genérico principal (misma lista que isGenericTerm)
   const GENERIC_TERMS = [
     'arena', 'cemento', 'piedra', 'cal', 'ladrillo',
-    'hierro', 'malla', 'ceramico', 'hidrofugo',
+    'varilla', 'hierro', 'malla', 'ceramico', 'hidrofugo',
     'escombro', 'tosca', 'plasticor',
     'vigueta', 'alambre', 'clavo', 'tornillo',
     'aislante', 'tapa', 'pallet'
@@ -403,6 +403,35 @@ function findProductsByGenericTerm(text, productIndex = []) {
 }
 
 /* ----------------------------------------------
+ * Expansión de atajos de producto comunes
+ * Convierte frases coloquiales a términos del catálogo:
+ * - "pallet del 12" → "pallet ladrillo 12"
+ * - "varilla del 8" → "varilla 8"
+ * - "de 25kg" → (se limpia, redundante)
+ * ------------------------------------------- */
+function expandShorthands(text = '') {
+  let t = text;
+
+  // "pallet del 12" o "palets del 8" → "pallet ladrillo 12" / "pallet ladrillo 8"
+  t = t.replace(/\bpall?e[t]?s?\s+(del?)\s+(\d+)/gi, 'pallet ladrillo $2');
+
+  // "del 12" / "del 8" sin contexto previo → añadir ladrillo si parece hueco
+  // (pero solo si NO tiene ya "ladrillo", "varilla", "hierro", etc.)
+  if (/\bdel\s+(\d+)\b/i.test(t) && !/\b(ladrillos?|huecos?|varillas?|hierros?|mallas?)\b/i.test(t)) {
+    // Asumimos ladrillo por defecto cuando dicen "del X" solo
+    t = t.replace(/\bdel\s+(\d+)\b/gi, 'ladrillo $1');
+  }
+
+  // Limpiar "de 25kg", "de 25 kg", "x 25kg" redundante (el peso ya está implícito en el producto)
+  t = t.replace(/\b(de|x)\s*\d+\s*kg?\b/gi, '');
+
+  // Limpiar "de 25 kilos"
+  t = t.replace(/\bde\s*\d+\s*kilos?\b/gi, '');
+
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+/* ----------------------------------------------
  * smartMatch (Principal)
  * ------------------------------------------- */
 export async function smartMatch(text, productIndex, qty = 1, priceMap = {}) {
@@ -416,8 +445,11 @@ export async function smartMatch(text, productIndex, qty = 1, priceMap = {}) {
   const { correctSpelling } = await import('./spellingCorrector.js');
   const corrected = correctSpelling(text || '');
 
+  // 0.1) Expandir atajos de producto (pallet del 12 → pallet ladrillo 12, etc.)
+  const expanded = expandShorthands(corrected);
+
   // Texto limpio sin cantidad
-  const normalized = normalizeTerms(corrected);
+  const normalized = normalizeTerms(expanded);
   const coreForGlossary = normalized.replace(/\b(?:x|por|a)\s*\d+(?:[.,]\d+)?\b/gi, ' ').trim();
 
   // 0.5) Detectar productos por defecto para términos genéricos sin especificaciones
@@ -476,7 +508,7 @@ export async function smartMatch(text, productIndex, qty = 1, priceMap = {}) {
     }
   }
 
-  // 0) Detectar términos genéricos y forzar desambiguación
+  // 0) Detectar términos genéricos
   if (isGenericTerm(coreForGlossary || normalized)) {
     const genericResults = findProductsByGenericTerm(coreForGlossary || normalized, productIndex);
 
@@ -485,7 +517,18 @@ export async function smartMatch(text, productIndex, qty = 1, priceMap = {}) {
       return { accepted, clarify, notFound };
     }
 
-    // Siempre desambiguar para términos genéricos
+    // Si hay UN solo producto genérico que matchea (ej: "hierro de 8"), aceptarlo directo
+    if (genericResults.length === 1) {
+      const p = genericResults[0].product;
+      accepted.push({
+        product: p,
+        variant: (p.variants || [])[0] || {},
+        qty: requestedQty
+      });
+      return { accepted, clarify, notFound };
+    }
+
+    // Siempre desambiguar para términos genéricos (si hay varios)
     clarify.push(buildClarify(text, genericResults.map(r => r.product), requestedQty, priceMap));
     return { accepted, clarify, notFound };
   }

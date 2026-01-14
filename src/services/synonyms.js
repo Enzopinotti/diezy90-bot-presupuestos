@@ -44,10 +44,16 @@ const TOKEN_MAP = new Map([
   ['poroceanato', 'porcelanato'],
   ['porcelanatto', 'porcelanato'],
 
-  // Acero
-  ['fi', 'hierro'],
+  // Acero - IMPORTANTE: 'hierro' es como está en Shopify, 'varilla' es como la gente lo pide.
   ['varilla', 'hierro'],
+  ['varillas', 'hierro'],
+  ['fi', 'hierro'],
   ['barra', 'hierro'],
+  ['barras', 'hierro'],
+  ['fierro', 'hierro'],
+  ['fierros', 'hierro'],
+  ['variya', 'hierro'],
+  ['variyas', 'hierro'],
 
   // Revestimientos
   ['ceramica', 'ceramico'],
@@ -57,6 +63,9 @@ const TOKEN_MAP = new Map([
   // Ladrillos
   ['hueco', 'ladrillo'],
   ['pallet', 'pallet'],
+  ['palets', 'pallet'],
+  ['pallets', 'pallet'],
+  ['palet', 'pallet'],
 ]);
 
 const K_DYN = 'd90:synonyms:dynamic';

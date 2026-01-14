@@ -42,7 +42,7 @@ export function getDefaultProduct(term) {
     // - Prefijos opcionales: "de", "bolson de", "bolsones de", "1m3 de", "bolsitas de", "bolsas de"
     // - Sufijos opcionales: "bolson", "bolsones", "1m3", "x 1m3", "bolsita", "bolsitas"
 
-    const prefix = /(?:^|\s)(?:(?:bolsas?|bols[oó]ne?s?|bolsitas?|1\s*m3)\s+de\s+|de\s+)?/i;
+    const prefix = /(?:^|\s)(?:(?:bols[oó]ne?s?|bolsitas?|1\s*m3)\s+de\s+|de\s+)?/i;
     const suffix = /(?:\s+(?:bols[oó]ne?s?|bolsitas?|x?\s*1\s*m3))?$/i;
 
     // Construimos regex dinámicas para no repetir lógica
