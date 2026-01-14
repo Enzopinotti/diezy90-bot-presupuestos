@@ -22,15 +22,21 @@ async function test() {
 
     for (const line of lines) {
         console.log(`\n--- Testing: "${line}" ---`);
-        // Simulating budget.controller logic
+
+        // Improved simulation of WATI loop
         let clean = line;
-        const prefixMatch = clean.match(/^\s*(?:[-*•]\s*)?(\d+(?:[.,]\d+)?)\b/);
+        const qtyMatches = [...clean.matchAll(/\b(?:x|por|a)\s*(\d+(?:[.,]\d+)?)\b/gi)];
         let lineQty = 1;
-        if (prefixMatch) {
-            lineQty = Number(String(prefixMatch[1]).replace(',', '.'));
-            clean = clean.substring(prefixMatch[0].length).trim();
+        if (qtyMatches.length) {
+            lineQty = Number(String(qtyMatches[qtyMatches.length - 1][1]).replace(',', '.'));
+        } else {
+            const prefixMatch = clean.match(/^\s*(?:[-*•]\s*)?(\d+(?:[.,]\d+)?)\b/);
+            if (prefixMatch) {
+                lineQty = Number(String(prefixMatch[1]).replace(',', '.'));
+                clean = clean.substring(prefixMatch[0].length).trim();
+            }
         }
-        clean = clean.replace(/^(de|del)\s+/i, '');
+        // Note: del/de are handled by expandShorthands/stripFiller inside smartMatch now
 
         const r = await smartMatch(clean, index, lineQty);
 
@@ -50,10 +56,6 @@ async function test() {
     console.log(`Accepted: ${results.length}`);
     console.log(`Clarify: ${clarify.length}`);
     console.log(`Not Found: ${notFound.length}`);
-
-    if (clarify.length > 0) {
-        console.log(`First Clarification: ${clarify[0].question}`);
-    }
 }
 
 test().catch(console.error);

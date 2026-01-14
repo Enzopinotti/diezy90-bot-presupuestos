@@ -80,6 +80,16 @@ export function humanizeName(name = '') {
   // Tildes faltantes comunes
   out = out.replace(/\bbolson\b/gi, 'bolsón');
 
+  // Limpieza de PALLETS y variaciones
+  if (out.includes('PALLET')) {
+    out = out.replace(/X\s*\d+\s*X\s*\d+/gi, ''); // Quitar dimensiones extras (18x18x33 -> 18)
+    out = out.replace(/PALLET LADRILLO HUECO/gi, 'PALLET LADRILLO');
+    out = out.replace(/PALLET LADRILLO/gi, 'Pallet Ladrillo');
+  }
+
+  // Quitar palabras redundantes de unidades
+  out = out.replace(/\b(un|unidad(es)?)\b/gi, '');
+
   return out.replace(/\s+/g, ' ').trim();
 }
 
@@ -380,6 +390,16 @@ function findProductsByGenericTerm(text, productIndex = []) {
     // FILTRO ESTRICTO DE NÚMEROS:
     // Si la búsqueda tiene números (ej: "ladrillo del 12"), el producto DEBE tenerlos.
     if (queryNumbers.length > 0) {
+      // Para ladrillos/pallets, el número debe ser el primero que aparece o ser muy relevante
+      if (mainTerm === 'ladrillo' || mainTerm === 'pallet') {
+        const firstNum = titleTokens.find(t => /^\d+$/.test(t));
+        if (firstNum && !queryNumbers.includes(firstNum)) {
+          // Si el "número principal" del producto (ej: 12) no es el que buscan (ej: 18), saltar
+          // incluso si el título tiene el 18 en las dimensiones (12x18x33)
+          continue;
+        }
+      }
+
       const allNumbersPresent = queryNumbers.every(qn => titleTokens.includes(qn));
       if (!allNumbersPresent) continue;
     }
@@ -391,6 +411,14 @@ function findProductsByGenericTerm(text, productIndex = []) {
     for (const t of tokens) {
       if (!termsToSearch.includes(t) && titleTokens.includes(t)) {
         score += 0.15;
+      }
+    }
+
+    // Bonus extra si el número buscado es precisamente el identificador principal
+    if (queryNumbers.length > 0) {
+      const firstNum = titleTokens.find(t => /^\d+$/.test(t));
+      if (queryNumbers.includes(firstNum)) {
+        score += 0.5; // Muy probable que sea este
       }
     }
 
@@ -415,11 +443,15 @@ function expandShorthands(text = '') {
   // "pallet del 12" o "palets del 8" → "pallet ladrillo 12" / "pallet ladrillo 8"
   t = t.replace(/\bpall?e[t]?s?\s+(del?)\s+(\d+)/gi, 'pallet ladrillo $2');
 
-  // "del 12" / "del 8" sin contexto previo → añadir ladrillo si parece hueco
+  // "del 12" / "del 8" sin contexto previo → añadir ladrillo si parece hueco, o hierro si es chico
   // (pero solo si NO tiene ya "ladrillo", "varilla", "hierro", etc.)
   if (/\bdel\s+(\d+)\b/i.test(t) && !/\b(ladrillos?|huecos?|varillas?|hierros?|mallas?)\b/i.test(t)) {
-    // Asumimos ladrillo por defecto cuando dicen "del X" solo
-    t = t.replace(/\bdel\s+(\d+)\b/gi, 'ladrillo $1');
+    const num = parseInt(t.match(/\bdel\s+(\d+)\b/i)[1]);
+    if (num <= 10) {
+      t = t.replace(/\bdel\s+(\d+)\b/gi, 'hierro $1');
+    } else {
+      t = t.replace(/\bdel\s+(\d+)\b/gi, 'ladrillo $1');
+    }
   }
 
   // Limpiar "de 25kg", "de 25 kg", "x 25kg" redundante (el peso ya está implícito en el producto)

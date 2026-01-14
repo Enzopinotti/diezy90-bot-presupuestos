@@ -621,10 +621,17 @@ async function findItemInBudget(terms, items, productIndex) {
 
     // Match por palabras clave
     const searchWords = normalized.split(/\s+/).filter(w => w.length > 2);
+    if (!searchWords.length) continue; // Evitar matches vacíos
+
     const titleWords = itemTitle.split(/\s+/);
     const matches = searchWords.filter(sw => titleWords.some(tw => tw.includes(sw) || sw.includes(tw)));
 
-    if (matches.length >= Math.min(2, searchWords.length)) {
+    // Extraer números de ambos
+    const searchNums = normalized.match(/\d+/g) || [];
+    const titleNums = itemTitle.match(/\d+/g) || [];
+    const numMatch = searchNums.every(n => titleNums.includes(n));
+
+    if (matches.length >= Math.min(2, searchWords.length) && numMatch) {
       return i;
     }
   }
@@ -1336,17 +1343,20 @@ export async function handleBudgetMessage(req, body, phone) {
       'para el presupuesto', 'para mi casa', 'para la obra', 'presupuesto', 'saludos'
     ].sort((a, b) => b.length - a.length);
 
+    const isMultiLine = rawLines.length >= 2;
+
     for (const line of rawLines) {
       let clean = sanitizeText(line);
       if (!clean) continue;
 
       // —— EDICIÓN NATURAL POR LÍNEA ——
-      // Si la línea tiene un comando de edición y ya hay un presupuesto activo
+      // Solo si NO estamos procesando una lista completa (isMultiLine)
+      // para evitar que items nuevos se confundan con ediciones de items recién agregados
       const lineIntent = parseIntent(line);
-      if (sess.items?.length > 0 && ['REMOVE', 'ADD', 'CHANGE'].includes(lineIntent.type)) {
+      if (!isMultiLine && sess.items?.length > 0 && ['REMOVE', 'ADD', 'CHANGE'].includes(lineIntent.type)) {
         console.log(`✏️ [BUDGET] Detectada edición en línea: "${line}" -> Intent:`, lineIntent.type);
         const handled = await handleNaturalEdit({ phone, intent: lineIntent, sess, productIndex: idx });
-        if (handled) continue; // Si se procesó como edición, saltar al siguiente item
+        if (handled) continue;
       }
 
       // 0. Limpiar puntuación y espacios al inicio
